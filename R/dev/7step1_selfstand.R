@@ -1,98 +1,53 @@
-### Title:    Working Script LMFA with Sweep
-### Author:   Leonie & Edo
-### Created:  2022-02-28
-### Modified: 
+# Project:  lmfa
+# Title:    Working Script LMFA with Sweep
+# Author:   Leonie & Edo
+# Created:  2022-02-28
+# Modified: 2022-03-14
 
+# Set up -----------------------------------------------------------------------
 
-###                   ###
-### Source functions  ###
-###                   ###
+# Clean environment
+rm(list = ls())
 
-load(file='../data/ESM.rda')
-source(file = "00HelperfunctionCombinations.R")
-source(file = "00HelpterfunctionRandomVector.R")
-source(file = "0PlotBIC.r")
-source(file = "0PlotChull.r")
-source(file = "0SummaryProbabilities.r")
-source(file = "0SummaryStep1.r")
-source(file = "0SummaryStep1CHull.r")
-source(file = "0SummaryStep1Modelselection.r")
-source(file = "0SummaryStep2.r")
-source(file = "0SummaryStep3.r")
-source(file = "1InitializeEM.R")
-source(file = "2UpdatePosteriorProb.R")
-source(file = "3ComputeBeta.R")
-source(file = "4ComputeTheta.R")
-source(file = "5UpdateLoadingUnique.R")
-source(file = "6ComputeResponseprobSaveDMV.R")
-# source(file = "7Step1.R")
-# source(file = "7Step1Chull.r")
-# source(file = "7Step1Factorscores.r")
-# source(file = "7Step1Factorscores.r")
-# source(file = "7Step2.r")
-# source(file = "7Step3.R")
-# source(file = "7Step3Probabilities.r")
-# source(file = "8ESMdata.R")
-# source(file = "8modelselection.R")
-# source(file = "8transitionmodel.R")
+# Load package hidden functions
+devtools::load_all()
 
-###                   ###
-### Load libraries    ###
-###                   ###
-library(stats)
-library(mclust)
-library(foreach)
-library(doParallel)
-library(parallel)
-library(msm)
-library(expm)
-library(NPflow)
-library(GPArotation)
-library(multichull)
-library(graphics)
-
-###                   ###
-### Define elements   ###
-###                   ###
+# Define internal elements we need for development
 
 set.seed(1000)
-data = ESM
-indicators = c(
-  "Interested",
-  "Joyful",
-  "Determined",
-  "Calm",
-  "Lively",
-  "Enthusiastic",
-  "Relaxed",
-  "Cheerful",
-  "Content",
-  "Energetic",
-  "Upset",
-  "Gloomy",
-  "Sluggish",
-  "Anxious",
-  "Bored",
-  "Irritated",
-  "Nervous",
-  "Listless")
-n_state = 3
-n_fact = c(3,3,2)
-modelselection = FALSE
-n_state_range = NULL 
-n_fact_range = NULL
-n_starts = 1 #use only 1 and not 25
-n_initial_ite = 15
-n_m_step = 10
-em_tolerance = 1e-8
+data             = ESM
+indicators       = c("Interested",
+                     "Joyful",
+                     "Determined",
+                     "Calm",
+                     "Lively",
+                     "Enthusiastic",
+                     "Relaxed",
+                     "Cheerful",
+                     "Content",
+                     "Energetic",
+                     "Upset",
+                     "Gloomy",
+                     "Sluggish",
+                     "Anxious",
+                     "Bored",
+                     "Irritated",
+                     "Nervous",
+                     "Listless")
+n_state          = 3
+n_fact           = c(3, 3, 2)
+modelselection   = FALSE
+n_state_range    = NULL
+n_fact_range     = NULL
+n_starts         = 1 # use only 1 and not 25
+n_initial_ite    = 15
+n_m_step         = 10
+em_tolerance     = 1e-8
 m_step_tolerance = 1e-3
-max_iterations = 1000
-n_mclust = 5 #use 2 and not 5
+max_iterations   = 1000
+n_mclust         = 5 # use 2 and not 5
 
-
-###                         ###
-### Take out outer function ###
-###                         ###
+# Take out outer function ------------------------------------------------------
 
 # step1 <- function(data,
 #                   indicators,
@@ -196,14 +151,14 @@ n_mclust = 5 #use 2 and not 5
   if(round(n_m_step)!=n_m_step) stop("n_m_step must be an integer")
   if(round(max_iterations)!=max_iterations) stop("max_iterations must be an integer")
   if(round(n_mclust)!=n_mclust) stop("n_mclust must be an integer")
-  
+
   #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
   # Input: b) defined in the package.
   #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
-  
+
   # Perhaps set a seed in order to replicate results (e.g., same starting values).
-  
-  
+
+
   # Obtain the columns with the variables
   x <- data[,indicators]
   x <- as.data.frame(x)
@@ -252,14 +207,9 @@ n_mclust = 5 #use 2 and not 5
   cat("-------------------------------------------------------------")
   cat("\n")
   # for all models in the model selection (if modelselection == FALSE, only one model is estimated)
-  
-  
-  
-  ###                                                                    ###
-  ### Take out model comparison function and define  comparingmodels = 1 ###
-  ###                                                                    ###
-    
-  
+
+# Take out model comparison function and define  comparingmodels = 1 ---------
+
   #for(comparingmodels in 1:n_models){
   comparingmodels=1
     ptm <- proc.time()
@@ -281,26 +231,26 @@ n_mclust = 5 #use 2 and not 5
     # List of multistart procedure results.
     MultistartResults1 <- rep(list(list(NA)),n_starts*10)
     MultistartResults2 <- rep(list(list(NA)),n_starts)
-    MclustResults <- rep(list(list(NA)),3)
-    
+    MclustResults <- rep(list(list(NA)),n_mclust)
+
     # Prepare storing iterations.
     estimation <- matrix(c(NA),ncol=3,nrow=max_iterations)
     colnames(estimation) <- c("interation","loglik","activ. constraints")
-    
+
     # Define minimum amount of residual variances.
     residualVariance <- rep(NA,J)
     for(j in 1:J){
       residualVariance[j] <- (var(x[,j]) * (n_sub - 1) / n_sub)*1.0e-6
     }
-    
-    
+
+
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
     #                  --------------------------------------
     #                        Step 1: Measurement Models
     #                  --------------------------------------
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
-    
-    
+
+
     cat("\n")
     cat("1.Initializing...")
     # Start parallelization.
@@ -308,29 +258,29 @@ n_mclust = 5 #use 2 and not 5
     cores=detectCores()
     cl <- makeCluster(cores[1]-1) #not to overload your computer
     registerDoParallel(cl)
-    
+
     iteration <- 1
     SumParameterChange <- 100
-    
+
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
-    # Initialize based on mclust 
+    # Initialize based on mclust
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
     ini_mclust_list <- list()
-    
+
     for(mcluststarts in 1:n_mclust){
       ini_mclust <- Mclust(x, G = n_state, verbose=FALSE)
       ini_mclust <- ini_mclust$classification
       ini_mclust_list[[mcluststarts]] <- ini_mclust
-      
-      
+
+
       # Self-created function (see '1InitializeEM.R').
       InitialValues <- initializeStep1(x,n_sub,n_state,n_fact,
                                        J,startval="mclust",
                                        RandVec=RandVec,
                                        ini_mclust = ini_mclust,
                                        ini_mclust_specific = ini_mclust_specific)#mclust;
-      
-      
+
+
       # Extract all parameters that are going to be updated in the EM algorithm.
       z_ik<- InitialValues$z_ik         #expected state-membership-probabilities
       N_k<- InitialValues$N_k           #sample size per state
@@ -339,44 +289,44 @@ n_mclust = 5 #use 2 and not 5
       C_k<- InitialValues$C_k           #sample covariance matrix
       Lambda_k<- InitialValues$Lambda_k #state-specific loading matrices
       Psi_k<- InitialValues$Psi_k       #state-specific unique variances
-      
+
       #-------------------------------------------------------------------------------#
       # Compute: Regression Weights (Beta)
       #-------------------------------------------------------------------------------#
-      
+
       # Self-created function (see '3ComputeBeta.R').
       Beta_k <- comBetas(Lambda_k, Psi_k, n_state,n_fact)
-      
+
       #-------------------------------------------------------------------------------#
       # Compute: Exp. of crossproduct of factor scores given data (Theta)
       #-------------------------------------------------------------------------------#
-      
+
       # Self-created function (see '4ComputeTheta.R').
       Theta_k <- comTheta(Beta_k, n_state, C_k, Lambda_k, n_fact)
-      
+
       #===============================================================================#
       # Update: Loadings Lambda_k and unique variances Psi_k
       #===============================================================================#
-      
+
       # Self-created function (see '5UpdateLoadingUnique.R')
       LambPsi<-updLambPsi(n_state, C_k, n_fact, Beta_k, Theta_k,
                           residualVariance,J)
       Lambda_k <- LambPsi$Lambda_k
       Psi_k <- LambPsi$Psi_k
-      
+
       #-------------------------------------------------------------------------------#
       # Compute: Observed-data loglikelihood
       #-------------------------------------------------------------------------------#
-      
+
       #*******************************************************************************#
       # NOTE: FIRST calculate the DMV (response probabilities) to be able to re-use
       # them because this takes quite some time.
       # THEN calculate the likelihood while reusing the response probabilities DMV.
       #*******************************************************************************#
-      
+
       # Self-created function (see '6ComputeResponseprobSaveDMV.R').
       saveDMV<- DMV(x, Lambda_k, Psi_k, n_state, J,n_sub,nu_k)
-      
+
       # Obtain the observed-data loglikelihood.
       logli <- c(rep(0,n_sub))
       for(i in 1:n_sub){
@@ -385,17 +335,17 @@ n_mclust = 5 #use 2 and not 5
         }
       }
       total_logl <-sum(log(logli))
-      
-      
+
+
       #*******************************************************************************#
       # NOTE: Get all relevant parameters in one list to continue with the ones that
       # belong to the best start sets according to the loglikelihood.
       #*******************************************************************************#
-      
+
       # Make DMV a list for convenient storage.
       DMV_list <- rep(list(NA),n_state)
       for(k in 1:n_state){ DMV_list[[k]] <- saveDMV[k,]}
-      
+
       AllParameters <-list(pi_k,              #state proportions
                            nu_k,              #state-specific intercepts
                            Lambda_k,          #state-specific loading matrices
@@ -403,27 +353,27 @@ n_mclust = 5 #use 2 and not 5
                            total_logl,        #loglikelihood value
                            DMV_list,          #state-specific resp. probabilities
                            C_k)               #sample covariance matrix
-      
+
       # Store all mclust parameters
       MclustResults[[mcluststarts]] <- AllParameters
-      
+
     }
-    
+
     # Evaluate which mclust works best.
     # Extract the likelihood values.
     loglikMulti <- as.data.frame(matrix(unlist(lapply(MclustResults,
                                                       function(x) {x[[5]]})),ncol=1))
     row.names(loglikMulti) <- 1:n_mclust
-    
+
     # Obtain the number of the best mclust starts and use them for creating random deviations.
     best_mclust <- order(as.matrix(loglikMulti),decreasing = T)[1]
     ini_mclust <- ini_mclust_list[[best_mclust]]
-    
+
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
-    # Initialize n_starts*10 random deviations from best mclust assignments 
+    # Initialize n_starts*10 random deviations from best mclust assignments
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
-    
-    
+
+
     ini_mclust_random <- matrix(NA,ncol = (n_starts*10), nrow =n_sub )
     for(multistart in 1:(n_starts*10)){
       if(multistart == 1){
@@ -434,10 +384,10 @@ n_mclust = 5 #use 2 and not 5
       change_ini_mclust[sample(1:n_sub,size = 0.30*n_sub)] <- sample(1:n_state,(0.30*n_sub),replace=TRUE)
       ini_mclust_random[,multistart] <- change_ini_mclust
     }
-    
-    
+
+
     if(n_starts>0){ #otherwise only mclust is used
-      multistart <- NA #just because the CRAN check would otherwise 
+      multistart <- NA #just because the CRAN check would otherwise
       # say that there is no visible binding for global variable 'multistart'.
       MultistartResults1 <- foreach(multistart = 1: (n_starts*10),
                                     .packages = c("doParallel",
@@ -452,7 +402,7 @@ n_mclust = 5 #use 2 and not 5
                                                 "updLambPsi",
                                                 "DMV"),
                                     .verbose = FALSE)%dopar%{
-                                      
+
                                       ini_mclust_specific <- c(ini_mclust_random[,multistart])
                                       # Self-created function (see '1InitializeEM.R').
                                       InitialValues <- initializeStep1(x,n_sub,n_state,
@@ -460,7 +410,7 @@ n_mclust = 5 #use 2 and not 5
                                                                        RandVec = RandVec,
                                                                        ini_mclust = ini_mclust,
                                                                        ini_mclust_specific = ini_mclust_specific)#random;
-                                      
+
                                       # Extract all parameters that are going to be updated in the EM algorithm.
                                       z_ik<- InitialValues$z_ik         #expected state-membership-probabilities
                                       N_k<- InitialValues$N_k           #sample size per state
@@ -469,44 +419,44 @@ n_mclust = 5 #use 2 and not 5
                                       C_k<- InitialValues$C_k           #sample covariance matrix
                                       Lambda_k<- InitialValues$Lambda_k #state-specific loading matrices
                                       Psi_k<- InitialValues$Psi_k       #state-specific unique variances
-                                      
+
                                       #-------------------------------------------------------------------------------#
                                       # Compute: Regression Weights (Beta)
                                       #-------------------------------------------------------------------------------#
-                                      
+
                                       # Self-created function (see '3ComputeBeta.R').
                                       Beta_k <- comBetas(Lambda_k, Psi_k, n_state,n_fact)
-                                      
+
                                       #-------------------------------------------------------------------------------#
                                       # Compute: Exp. of crossproduct of factor scores given data (Theta)
                                       #-------------------------------------------------------------------------------#
-                                      
+
                                       # Self-created function (see '4ComputeTheta.R')
                                       Theta_k <- comTheta(Beta_k, n_state, C_k, Lambda_k, n_fact)
-                                      
+
                                       #===============================================================================#
                                       # Update: Loadings Lambda_k and unique variances Psi_k
                                       #===============================================================================#
-                                      
+
                                       # Self-created function (see '5UpdateLoadingUnique.R')
                                       LambPsi<-updLambPsi(n_state, C_k, n_fact, Beta_k, Theta_k,
                                                           residualVariance,J)
                                       Lambda_k <- LambPsi$Lambda_k
                                       Psi_k <- LambPsi$Psi_k
-                                      
+
                                       #-------------------------------------------------------------------------------#
                                       # Compute: Observed-data loglikelihood
                                       #-------------------------------------------------------------------------------#
-                                      
+
                                       #*******************************************************************************#
                                       # NOTE: FIRST calculate the DMV (response probabilities) to be able to re-use
                                       # them because this takes quite some time.
                                       # THEN calculate the likelihood while reusing the response probabilities DMV.
                                       #*******************************************************************************#
-                                      
+
                                       # Self-created function (see '6ComputeResponseprobSaveDMV.R').
                                       saveDMV<- DMV(x, Lambda_k, Psi_k, n_state, J,n_sub,nu_k)
-                                      
+
                                       # Obtain the observed-data loglikelihood.
                                       logli <- c(rep(0,n_sub))
                                       for(i in 1:n_sub){
@@ -515,16 +465,16 @@ n_mclust = 5 #use 2 and not 5
                                         }
                                       }
                                       total_logl <-sum(log(logli))
-                                      
+
                                       #*******************************************************************************#
                                       # NOTE: Get all relevant parameters in one list to continue with the ones that
                                       # belong to the best start sets according to the loglikelihood.
                                       #*******************************************************************************#
-                                      
+
                                       # Make DMV a list for convenient storage.
                                       DMV_list <- rep(list(NA),n_state)
                                       for(k in 1:n_state){ DMV_list[[k]] <- saveDMV[k,]}
-                                      
+
                                       AllParameters <-list(pi_k,              #state proportions
                                                            nu_k,              #state-specific intercepts
                                                            Lambda_k,          #state-specific loading matrices
@@ -532,11 +482,11 @@ n_mclust = 5 #use 2 and not 5
                                                            total_logl,        #loglikelihood value
                                                            DMV_list,          #state-specific resp. probabilities
                                                            C_k)               #sample covariance matrix
-                                      
+
                                       return(AllParameters)
                                     }
     }
-    
+
     # Add the mclust solutions to the (existing multistart) results.
     for(i in 1:n_mclust){
       MultistartResults1[[(length(lengths(MultistartResults1))+1)]] <- MclustResults[[i]]
@@ -559,7 +509,7 @@ n_mclust = 5 #use 2 and not 5
     cores=detectCores()
     cl <- makeCluster(cores[1]-1) #not to overload your computer
     registerDoParallel(cl)
-    multistart2 <- NA #just because the CRAN check would otherwise 
+    multistart2 <- NA #just because the CRAN check would otherwise
     # say that there is no visible binding for global variable 'multistart2'.
     cat("\n")
     cat(paste("2.Iterating through the best 10 %",
@@ -573,26 +523,26 @@ n_mclust = 5 #use 2 and not 5
                                             "updLambPsi",
                                             "DMV"),
                                   .verbose = FALSE)%dopar%{
-                                    
+
                                     # Extract parameter values belonging to the best loglikelihood values.
                                     TakeOverResults <- MultistartResults1[[c(best)[multistart2]]]
                                     pi_k <- TakeOverResults[[1]]
                                     nu_k<- TakeOverResults[[2]]
                                     Lambda_k <- TakeOverResults[[3]]
                                     Psi_k<- TakeOverResults[[4]]
-                                    
+
                                     # Needs to be a matrix again.
                                     Psi_k<-lapply(Psi_k,function(x) x*diag(J))
                                     total_logl <- TakeOverResults[[5]]
                                     DMV_list<- TakeOverResults[[6]]
-                                    
+
                                     # From list to matrix.
                                     saveDMV <- matrix(NA,nrow=n_state,ncol=n_sub)
                                     for(k in 1: n_state){
                                       saveDMV[k,] <- DMV_list[[k]]
                                     }
                                     C_k <- TakeOverResults[[7]]
-                                    
+
                                     AllParameters <-list(pi_k,              #state proportions
                                                          nu_k,              #state-specific intercepts
                                                          Lambda_k,          #state-specific loading matrices
@@ -601,10 +551,10 @@ n_mclust = 5 #use 2 and not 5
                                                          DMV_list,          #state-specific resp. probabilities
                                                          C_k,               #sample covariance matrix
                                                          list(estimation))
-                                    
+
                                     M_step_parameters <- list(Lambda_k,          #state-specific loading matrices
                                                               lapply(Psi_k,diag))#state-specific unique variances
-                                    
+
                                     #*******************************************************************************#
                                     # NOTE: Set the loglikelihood equal to the one from the start set, the number of
                                     # iterations equal to zero, and the difference between loglikelihood values to 1.
@@ -613,41 +563,41 @@ n_mclust = 5 #use 2 and not 5
                                     LL <- total_logl
                                     iteration <- 0
                                     differenceLL <- 1
-                                    
+
                                     while(iteration<n_initial_ite){
                                       #the other line (below) would be necessary for calculating the hitrate
                                       #while((sum(abs(differenceLL)>1e-3, iteration < max_iterations)==2)){
-                                      
+
                                       iteration <- iteration+1
-                                      
+
                                       #*******************************************************************************#
                                       # NOTE: In the following, I numbered the main 'update' steps,
                                       # not the 'computation' steps that are only required to obtain
                                       # updates of the relevant parameters
                                       #*******************************************************************************#
-                                      
+
                                       #===============================================================================#
                                       # 1: Update: post. state-membership probabilities z_ig for
                                       #===============================================================================#
-                                      
+
                                       # Self-created function (see '2UpdatePosteriorProb.R')
                                       z_ik <- updExpMem(Lambda_k, Psi_k, n_state, C_k, n_fact, DMV=saveDMV,n_sub,pi_k)
-                                      
+
                                       #===============================================================================#
                                       # 2: Update: state-sp. samplesize N_k, state proportions pi_k,
                                       # and intercepts nu_k
                                       #===============================================================================#
-                                      
+
                                       # Number of observations per state; kx1 vector.
                                       N_k <- lapply(z_ik,sum)
-                                      
+
                                       # State proportions; kx1 vector.
                                       pi_k <- lapply(z_ik,mean)
-                                      
+
                                       #-------------------------------------------------------------------------------#
                                       # Compute: Sample covariance matrix
                                       #-------------------------------------------------------------------------------#
-                                      
+
                                       C_k <- rep(list(NA),n_state)
                                       for(sc in 1:n_state){
                                         #this is an existing function to obtain the weighted cov matrix
@@ -655,7 +605,7 @@ n_mclust = 5 #use 2 and not 5
                                         C_k[[sc]] <- SaveCov$cov
                                         nu_k[[sc]] <- SaveCov$center #Here we also obtain nu_k
                                       }
-                                      
+
                                       m_step <- 0
                                       SumParameterChange <- 100
                                       while(sum(m_step<n_m_step,SumParameterChange>m_step_tolerance)==2){
@@ -663,37 +613,37 @@ n_mclust = 5 #use 2 and not 5
                                         #-------------------------------------------------------------------------------#
                                         # Compute: Regression Weights (Beta)
                                         #-------------------------------------------------------------------------------#
-                                        
+
                                         # Self-created function (see '3ComputeBeta.R').
                                         Beta_k <- comBetas(Lambda_k, Psi_k, n_state,n_fact)
-                                        
+
                                         #-------------------------------------------------------------------------------#
                                         # Compute: Exp. of crossproduct of factor scores given data (Theta)
                                         #-------------------------------------------------------------------------------#
-                                        
+
                                         # Self-created function (see '4ComputeTheta.R')
                                         Theta_k <- comTheta(Beta_k, n_state, C_k, Lambda_k, n_fact)
-                                        
+
                                         #===============================================================================#
                                         # 3: Update: Loadings Lambda_k and unique variances Psi_k
                                         #===============================================================================#
-                                        
+
                                         # Self-created function (see '5UpdateLoadingUnique.R')
                                         LambPsi<-updLambPsi(n_state, C_k, n_fact, Beta_k, Theta_k,
                                                             residualVariance,J)
                                         Lambda_k <- LambPsi$Lambda_k
                                         Psi_k <- LambPsi$Psi_k
-                                        
-                                        
+
+
                                         #*******************************************************************************#
                                         # Evaluate intermediate parameter change to determine M-step iterations
                                         #*******************************************************************************#
                                         M_step_parametersN <- list(Lambda_k,          #state-specific loading matrices
                                                                    lapply(Psi_k,diag))#state-specific unique variances
-                                        
+
                                         sumParChangeOld <- c(unlist(M_step_parameters))
                                         sumParChangeNew <- c(unlist(M_step_parametersN))
-                                        
+
                                         #*******************************************************************************#
                                         # NOTE: The following ifelse replacement is done if a loading is ~zero. Otherwise
                                         # one would divide by 0. This is only relevant to calculate the sum of the
@@ -705,22 +655,22 @@ n_mclust = 5 #use 2 and not 5
                                                                     0.00000000001,0.00000000001,sumParChangeNew)
                                         SumParameterChange <-sum(abs((sumParChangeOld-sumParChangeNew)/sumParChangeOld))
                                         M_step_parameters <- M_step_parametersN
-                                        
+
                                       }
-                                      
+
                                       #-------------------------------------------------------------------------------#
                                       # Compute: Observed-data loglikelihood
                                       #-------------------------------------------------------------------------------#
-                                      
+
                                       #*******************************************************************************#
                                       # NOTE: FIRST calculate the DMV (response probabilities) to be able to re-use
                                       # them because this takes quite some time.
                                       # THEN calculate the likelihood while reusing the response probabilities DMV.
                                       #*******************************************************************************#
-                                      
+
                                       # Self-created function (see '6ComputeResponseprobSaveDMV.R').
                                       saveDMV<- DMV(x, Lambda_k, Psi_k, n_state, J,n_sub,nu_k)
-                                      
+
                                       # Obtain the observed-data loglikelihood.
                                       logli <- c(rep(0,n_sub))
                                       for(i in 1:n_sub){
@@ -729,11 +679,11 @@ n_mclust = 5 #use 2 and not 5
                                         }
                                       }
                                       total_logl <-sum(log(logli))
-                                      
+
                                       # Make DMV a list for convenient storage.
                                       DMV_list <- rep(list(NA),n_state)
                                       for(k in 1:n_state){ DMV_list[[k]] <- saveDMV[k,]}
-                                      
+
                                       #-------------------------------------------------------------------------------#
                                       # Compute: Convergence
                                       #-------------------------------------------------------------------------------#
@@ -749,22 +699,22 @@ n_mclust = 5 #use 2 and not 5
                                                             C_k,               #sample covariance matrix
                                                             list(estimation),
                                                             iteration)
-                                      
+
                                       AllParameters <- AllParametersN
                                     }
                                     return(AllParameters) #end multistart loop after this one
                                   }
     stopCluster(cl)
     stopImplicitCluster()
-    
+
     # Extract the likelihood values
     loglikMulti <- as.data.frame(matrix(unlist(lapply(MultistartResults2,
                                                       function(x) {x[[5]]})),ncol=1))
     row.names(loglikMulti) <- 1:(n_starts)
-    
+
     # Obtain the number of the best starts
     best <- order(as.matrix(loglikMulti),decreasing = T)[1]
-    
+
     equalLogli <- round(loglikMulti[,1])
     equalLogli <- unlist(equalLogli)
     hitrate <- (length(equalLogli[duplicated(equalLogli)]))/(length(equalLogli)-1)
@@ -772,7 +722,7 @@ n_mclust = 5 #use 2 and not 5
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
     # Continue looping through the start set with the best loglikelihood value
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
-    
+
     # Extract parameter values belonging to the best loglikelihood values
     TakeOverResults <- MultistartResults2[[c(best)]]
     pi_k <- TakeOverResults[[1]]
@@ -784,18 +734,18 @@ n_mclust = 5 #use 2 and not 5
     C_k <- TakeOverResults[[7]]
     estimation <- TakeOverResults[[8]][[1]]
     iteration <-TakeOverResults[[9]]
-    
+
     # Needs to be a matrix again.
     Psi_k<-lapply(Psi_k,function(x) x*diag(J))
-    
-    
+
+
     # From list to matrix.
     saveDMV <- matrix(NA,nrow=n_state,ncol=n_sub)
     for(k in 1: n_state){
       saveDMV[k,] <- DMV_list[[k]]
     }
-    
-    
+
+
     AllResultsBestSet <- list()
     resultNumber <- 0
     AllParameters <-list(pi_k,              #state proportions
@@ -805,10 +755,10 @@ n_mclust = 5 #use 2 and not 5
                          total_logl,        #loglikelihood value
                          DMV_list,          #state-specific resp. probabilities
                          C_k)               #sample covariance matrix
-    
+
     M_step_parameters <- list(Lambda_k,          #state-specific loading matrices
                               lapply(Psi_k,diag))#state-specific unique variances
-    
+
     #*******************************************************************************#
     # NOTE: Set the loglikelihood equal to the one from the start set, the number of
     # iterations equal to n_initial_ite, and the difference between loglikelihood
@@ -817,7 +767,7 @@ n_mclust = 5 #use 2 and not 5
     LL <- total_logl
     #iteration <- n_initial_ite
     differenceLL <- 1
-    
+
     #*******************************************************************************#
     # NOTE: Give some value to the sum of parameter change to start the loop with
     # (will be updated in the loop).
@@ -825,8 +775,10 @@ n_mclust = 5 #use 2 and not 5
     SumParameterChange <- 100
     cat("\n")
     cat(paste("3.Analyzing data with the best start set..."))
-    
+
     LLcorrect <- TRUE
+
+# Get ready to update C_k parameter --------------------------------------------
 
     while((sum(abs(differenceLL)>em_tolerance,SumParameterChange>em_tolerance,
                iteration < max_iterations)==3)){
@@ -862,52 +814,37 @@ n_mclust = 5 #use 2 and not 5
       # Compute: Sample covariance matrix
       #-------------------------------------------------------------------------------#
 
+# Current C_k ------------------------------------------------------------------
+
       C_k <- rep(list(NA),n_state)
 
       ### What happens now
       for(sc in 1:n_state){
-        sc <- 1
         #this is an existing function to obtain the weighted cov matrix
         SaveCov <- cov.wt(x, wt = z_ik[[sc]], method = 'ML',center = T )
         C_k[[sc]] <- SaveCov$cov
         nu_k[[sc]] <- SaveCov$center #Here we also obtain nu_k
       }
 
+# Work on C_k ------------------------------------------------------------------
 
-      x <- as.matrix(x)
+      # Prepare interals
+      x = as.matrix(x)
       center = TRUE
       wt = z_ik[[sc]]
-      n <- nrow(x)
-      if (with.wt <- !missing(wt)) {
-        if (length(wt) != n)
-          stop("length of 'wt' must equal the number of rows in 'x'")
-        if (any(wt < 0) || (s <- sum(wt)) == 0)
-          stop("weights must be non-negative and not all zero")
-        wt <- wt/s
-      }
-      if (is.logical(center)) {
-        center <- if (center) colSums(wt * x) else 0
-      } else {
-        if (length(center) != ncol(x))
-          stop("length of 'center' must equal the number of columns in 'x'")
-      }
-      x <- sqrt(wt) * base::sweep(x, 2, center, check.margin = FALSE)
-      cov <- crossprod(x)
-      y <- list(cov = cov, center = center, n.obs = n)
-      cov
 
-      head(wt)
-      head(z_ik[[sc]])
-
-      ## Out of function
-      x <- as.matrix(x)
-      center = TRUE
-      wt = z_ik[[sc]]
+      # Establish parameters
       n <- nrow(x)
       s <- sum(wt)
+
+      # Normalise weights
       wt <- wt/s
       center <- colSums(wt * x)
       x_cent <- base::sweep(x, 2, center, check.margin = FALSE)
+
+      # Compare centers
+      data.frame(manual = center,
+                 stats = SaveCov$center)
 
       # Directly get the covariance matrix
       x_weighted <- sqrt(wt) * x_cent
@@ -921,6 +858,12 @@ n_mclust = 5 #use 2 and not 5
       }
       (covmat <- Tobs / N_k[[sc]])
 
+      # Relate direct cov to Tobs derived cov
+      round(cov[1:6, 1:5] - covmat[1:6, 1:5], 5)
+
+      # Relate Tobs derived cov to stats cov
+      round(covmat[1:6, 1:5] - SaveCov$cov[1:6, 1:5], 5)
+
       for(sc in 1:n_state){
         # 1. transform x according to what cov.wg would do
         # 2. T = cov * N_k
@@ -932,7 +875,11 @@ n_mclust = 5 #use 2 and not 5
         nu_k[[sc]] <- SaveCov$center #Here we also obtain nu_k
       }
 
-      ### What we want to happen
+# What we want to happen -------------------------------------------------------
+# 1. transform x according to what cov.wg would do
+# 2. T = cov * N_k
+# 3. updating of T
+
       # First definition of the SOMI objects
       SOMI <- createSOMI(x)
 
