@@ -2,7 +2,7 @@
 # Title:    Working Script LMFA with Sweep
 # Author:   Leonie & Edo
 # Created:  2022-02-28
-# Modified: 2022-03-14
+# Modified: 2022-03-15
 
 # Set up -----------------------------------------------------------------------
 
@@ -779,6 +779,7 @@ n_mclust         = 5 # use 2 and not 5
     LLcorrect <- TRUE
 
 # Get ready to update C_k parameter --------------------------------------------
+# Run up untill here to work on the code after this
 
     while((sum(abs(differenceLL)>em_tolerance,SumParameterChange>em_tolerance,
                iteration < max_iterations)==3)){
@@ -825,6 +826,46 @@ n_mclust         = 5 # use 2 and not 5
         C_k[[sc]] <- SaveCov$cov
         nu_k[[sc]] <- SaveCov$center #Here we also obtain nu_k
       }
+
+# Translate C_k to a a fast version working with Tobs --------------------------
+      C_k_old <- C_k
+      nu_k_old <- nu_k
+
+      C_k <- rep(list(NA),n_state)
+      for(sc in 1:n_state){
+        # Define weights for this state
+        wt <- z_ik[[sc]]
+
+        # Normalise weights
+        wn <- wt / sum(wt)
+
+        # Compute the weighted means of X again
+        nu_k[[sc]] <- colSums(wn * x)
+        x_cent <- base::sweep(x, 2, nu_k[[sc]], check.margin = FALSE)
+
+        # Transform to matrix
+        x_cent <- as.matrix(x_cent)
+
+        # "Effective" sample size
+        nk <- sum(wt)
+
+        # Obtain matrix of sufficient statistics (Tobs) w/ cross-product shortcut
+        Tobs <- t(wt * x_cent) %*% x_cent
+
+        # Convert to a covariance matrix
+        C_k[[sc]] <- Tobs / nk
+      }
+
+      # Check different scs
+      sc <- 2
+
+      # Old new center is the same?
+      cbind(old = nu_k_old[[sc]],
+            new = nu_k_old[[sc]],
+            diff = nu_k_old[[sc]] - nu_k_old[[sc]])
+
+      # Old new C_k is the same?
+      round(C_k[[sc]] - C_k_old[[sc]], 5)
 
 # Work on C_k ------------------------------------------------------------------
 

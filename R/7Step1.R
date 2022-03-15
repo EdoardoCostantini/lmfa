@@ -591,10 +591,27 @@ if(modelselection == TRUE){
 
      C_k <- rep(list(NA),n_state)
      for(sc in 1:n_state){
-       #this is an existing function to obtain the weighted cov matrix
-       SaveCov <- cov.wt(x,z_ik[[sc]],method = 'ML',center = T )
-       C_k[[sc]] <- SaveCov$cov
-       nu_k[[sc]] <- SaveCov$center #Here we also obtain nu_k
+       # Define weights for this state
+       wt <- z_ik[[sc]]
+
+       # Normalise weights
+       wn <- wt / sum(wt)
+
+       # Compute the weighted means of X again
+       nu_k[[sc]] <- colSums(wn * x)
+       x_cent <- base::sweep(x, 2, nu_k[[sc]], check.margin = FALSE)
+
+       # Transform to matrix
+       x_cent <- as.matrix(x_cent)
+
+       # "Effective" sample size
+       nk <- sum(wt)
+
+       # Obtain matrix of sufficient statistics (Tobs) w/ cross-product shortcut
+       Tobs <- t(wt * x_cent) %*% x_cent
+
+       # Convert to a covariance matrix
+       C_k[[sc]] <- Tobs / nk
      }
 
      m_step <- 0
