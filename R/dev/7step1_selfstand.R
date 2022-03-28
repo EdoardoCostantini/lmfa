@@ -18,20 +18,20 @@ set.seed(1000)
 data             = ESM
 indicators       = c("Interested",
                      "Joyful",
-                     "Determined",
-                     "Calm",
-                     "Lively",
-                     "Enthusiastic",
-                     "Relaxed",
-                     "Cheerful",
-                     "Content",
-                     "Energetic",
-                     "Upset",
-                     "Gloomy",
-                     "Sluggish",
-                     "Anxious",
-                     "Bored",
-                     "Irritated",
+                     # "Determined",
+                     # "Calm",
+                     # "Lively",
+                     # "Enthusiastic",
+                     # "Relaxed",
+                     # "Cheerful",
+                     # "Content",
+                     # "Energetic",
+                     # "Upset",
+                     # "Gloomy",
+                     # "Sluggish",
+                     # "Anxious",
+                     # "Bored",
+                     # "Irritated",
                      "Nervous",
                      "Listless")
 n_state          = 3
@@ -781,8 +781,8 @@ n_mclust         = 5 # use 2 and not 5
 # Get ready to update C_k parameter --------------------------------------------
 # Run up untill here to work on the code after this
 
-    while((sum(abs(differenceLL)>em_tolerance,SumParameterChange>em_tolerance,
-               iteration < max_iterations)==3)){
+    # while((sum(abs(differenceLL)>em_tolerance,SumParameterChange>em_tolerance,
+    #            iteration < max_iterations)==3)){
       iteration <- iteration+1
       resultNumber <-resultNumber+1
       #if(iteration==max_iterations) stop("maximum number of iterations reached without convergence")
@@ -1076,8 +1076,8 @@ n_mclust         = 5 # use 2 and not 5
       
       AllResultsBestSet[[resultNumber]] <-AllParameters
       
-    }
-    
+    # } # closing of the while
+
     #
     if(iteration == max_iterations){
       warning("maximum number of iterations reached without convergence")
