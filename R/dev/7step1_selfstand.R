@@ -2,7 +2,7 @@
 # Title:    Working Script LMFA with Sweep
 # Author:   Leonie & Edo
 # Created:  2022-02-28
-# Modified: 2022-03-15
+# Modified: 2022-03-29
 
 # Set up -----------------------------------------------------------------------
 
@@ -817,7 +817,7 @@ n_mclust         = 5 # use 2 and not 5
 
 # Current C_k ------------------------------------------------------------------
 
-      C_k <- rep(list(NA),n_state)
+      C_k <- rep(list(NA), n_state)
 
       ### What happens now
       for(sc in 1:n_state){
@@ -826,10 +826,12 @@ n_mclust         = 5 # use 2 and not 5
         C_k[[sc]] <- SaveCov$cov
         nu_k[[sc]] <- SaveCov$center #Here we also obtain nu_k
       }
+      C_k_cur <- C_k
+      nu_k_cur <- nu_k
 
 # Translate C_k to a a fast version working with Tobs --------------------------
-      C_k_old <- C_k
-      nu_k_old <- nu_k
+
+      # use AllParameters to get the C_k at current moment
 
       C_k <- rep(list(NA),n_state)
       for(sc in 1:n_state){
@@ -847,7 +849,8 @@ n_mclust         = 5 # use 2 and not 5
         x_cent <- as.matrix(x_cent)
 
         # "Effective" sample size
-        nk <- sum(wt)
+        nk <- N_k[[sc]]
+        # nk <- sum(wt) # equivalent
 
         # Obtain matrix of sufficient statistics (Tobs) w/ cross-product shortcut
         Tobs <- t(wt * x_cent) %*% x_cent
@@ -860,106 +863,271 @@ n_mclust         = 5 # use 2 and not 5
       sc <- 2
 
       # Old new center is the same?
-      cbind(old = nu_k_old[[sc]],
-            new = nu_k_old[[sc]],
-            diff = nu_k_old[[sc]] - nu_k_old[[sc]])
+      cbind(old = nu_k_cur[[sc]],
+            new = nu_k[[sc]],
+            diff = nu_k_cur[[sc]] - nu_k[[sc]])
 
       # Old new C_k is the same?
-      round(C_k[[sc]] - C_k_old[[sc]], 5)
+      round(C_k[[sc]] - C_k_cur[[sc]], 5)
+      cbind(as.vector(C_k[[sc]]), as.vector(C_k_cur[[sc]]))
 
-# Work on C_k ------------------------------------------------------------------
+# What goes wrong with missing values ------------------------------------------
 
-      # Prepare interals
-      x = as.matrix(x)
-      center = TRUE
-      wt = z_ik[[sc]]
+      # Create a fake x object with some missing values
+      x_origin <- x
+      head(x)
+      x_miss <- x
+      set.seed(1234)
+      x_miss <- mice::ampute(x,
+                             prop = .1,
+                             patterns = matrix(c(1, 1, 0, rep(1, ncol(x)-3),
+                                                 1, 0, 1, rep(1, ncol(x)-3),
+                                                 1, 0, 0, rep(1, ncol(x)-3)),
+                                               ncol = ncol(x),
+                                               byrow = TRUE),
+                             mech = "MAR",
+                             type = "RIGHT"
+      )
+      md_patt <- mice::md.pattern(x_miss$amp)
 
-      # Establish parameters
-      n <- nrow(x)
-      s <- sum(wt)
-
-      # Normalise weights
-      wt <- wt/s
-      center <- colSums(wt * x)
-      x_cent <- base::sweep(x, 2, center, check.margin = FALSE)
-
-      # Compare centers
-      data.frame(manual = center,
-                 stats = SaveCov$center)
-
-      # Directly get the covariance matrix
-      x_weighted <- sqrt(wt) * x_cent
-      cov <- crossprod(x_weighted)
-      cov
-
-      # Get the matrix of sufficient statistics
-      Tobs <- matrix(0, ncol(x), ncol(x))
-      for(i in 1:nrow(x)){
-        Tobs <- Tobs + z_ik[[sc]][i] * (x_cent[i, ]) %*% t(x_cent[i, ])
-      }
-      (covmat <- Tobs / N_k[[sc]])
-
-      # Relate direct cov to Tobs derived cov
-      round(cov[1:6, 1:5] - covmat[1:6, 1:5], 5)
-
-      # Relate Tobs derived cov to stats cov
-      round(covmat[1:6, 1:5] - SaveCov$cov[1:6, 1:5], 5)
-
-      for(sc in 1:n_state){
-        # 1. transform x according to what cov.wg would do
-        # 2. T = cov * N_k
-        # 3. updating of T
-
-        #this is an existing function to obtain the weighted cov matrix
-        SaveCov <- cov.wt(x,z_ik[[sc]],method = 'ML',center = T )
-        C_k[[sc]] <- SaveCov$cov
-        nu_k[[sc]] <- SaveCov$center #Here we also obtain nu_k
-      }
-
-# What we want to happen -------------------------------------------------------
-# 1. transform x according to what cov.wg would do
-# 2. T = cov * N_k
-# 3. updating of T
-
-      # First definition of the SOMI objects
+      # Then replace the x you are using in the main algorithm with the one with
+      # missings
+      x <- as.matrix(x_miss$amp)
       SOMI <- createSOMI(x)
 
-      # Definition of a Tobs (initial matrix of sufficient stats)
-      Tobs <- initMiss(x, S = SOMI$S, I = SOMI$I)
-
-      # Temporarly use the cov.wt as the most up to date theta
-      theta <- cov(na.omit(x))
-      center <- colMeans(na.omit(x))
-
-      # Augment the covariance matrix with the vector of center
-      augCov <- augmentCov(covmat = theta, center = center)
-
-      # Then we want to cycle through states
+      # Update C_k with complete cases
+      C_k_cc <- rep(list(NA), n_state)
+      nu_k_cc <- rep(list(NA), n_state)
       for(sc in 1:n_state){
-        Tbase <- Tobs
-        # E-step to estiamte Covariance matrix with missing values
-        if(SOMI$S > 1){
-          # only if there are missing data patterns other than the fully
-          # observed pattern (s = 1)
+        #this is an existing function to obtain the weighted cov matrix
+        SaveCov <- cov.wt(x[SOMI$I[[1]], ],
+                          wt = z_ik[[sc]][SOMI$I[[1]]],
+                          method = 'ML',center = T )
+        C_k_cc[[sc]] <- SaveCov$cov
+        nu_k_cc[[sc]] <- SaveCov$center #Here we also obtain nu_k
+      }
+
+      # Update C_k with EM
+      # Prepare the objects we need
+      nu_k_EM <- rep(list(NA), n_state)
+      C_k_EM <- rep(list(NA), n_state)
+
+      # Create state specific Tobs
+      Tobs_k  <- rep(list(NA),n_state)
+      for (sc in 1:n_state){
+        # Weights for this state
+        wt <- z_ik[[sc]]
+
+        # Compute Tobs for all miss patts
+        Tobs_s <- vector("list", SOMI$S)
+        for(s in 1:SOMI$S){
+          # Define what you are working with in this miss patt
+          x_s <- x[SOMI$I[[s]], ]
+          wt_s <- wt[SOMI$I[[s]]]
+
+          # Weigthed augmented design matrix
+          dat_aug <- as.matrix(sqrt(wt_s) * cbind(1, x_s))
+
+          # Obtain matrix of sufficient statistics (Tobs) w/ cross-product shortcut
+          Tobs_s[[s]] <- as.matrix(t(dat_aug) %*% dat_aug)
+
+          # Replace NAs with 0 contributions
+          Tobs_s[[s]][is.na(Tobs_s[[s]])] <- 0
+        }
+        Tobs <- Reduce("+", Tobs_s)
+        dimnames(Tobs) <- dimnames(C_k_aug[[1]])
+        Tobs_k[[sc]] <- Tobs
+      }
+
+      # Augment current C_ks (set to initial values
+      C_k_aug <- lapply(1:n_state, function (i){
+        augmentCov(covmat = AllParameters[[7]][[i]], # covariance
+                   center = AllParameters[[2]][[i]]) # intercepts
+      })
+
+      # Iterations for missing data (to check how this is working)
+      # in the future we only want 1 iteration here.
+      for(sc in 1:n_state){
+        # Define weights for this state
+        wt <- z_ik[[sc]]
+
+        for (it in 1:1e3){
+          print(it)
+          # Current estimate of theta
+          theta <- C_k_aug[[sc]]
+
+          # Set Tmat to Tobs_k for the given state
+          Tmat <- Tobs_k[[sc]]
+
+          # E-step (add expected contributions)
           for(s in 2:SOMI$S){
-            Tbase <- updateTmat(x = x,
-                                Tmat = Tbase,
-                                augCov = augCov,
-                                obs = SOMI$I[[s]],
-                                dvs = SOMI$M[[s]],
-                                ivs = SOMI$O[[s]])
+
+            # Extract preliminary objects
+            obs   <- SOMI$I[[s]]
+            wt_s  <- wt[SOMI$I[[s]]]
+            v_obs <- SOMI$O[[s]]
+            v_mis <- SOMI$M[[s]]
+            v_all <- colnames(x)
+
+            # Sweep theta over predictors for this missing data pattern
+            theta <- ISR3::SWP(theta, v_obs)
+
+            # Define expectations (individual contributions)
+            betas <- theta[c("int", v_obs), v_mis]
+
+            # Define expectations (weight for x? or just for cjs?)
+            cjs <- cbind(1, x[obs, v_obs, drop = FALSE]) %*% betas
+            # cjs <- (cbind(1, x[obs, v_obs, drop = FALSE]) %*% betas) * wt[obs[i]]
+
+            # Update Tmat matrix
+            for(i in seq_along(obs)){
+              # i <- 1
+              for(j in seq_along( v_mis ) ){
+                # j <- 1
+                # Update for mean
+                J <- which(v_all == v_mis[j])
+                Tmat[1, J+1] <- Tmat[1, J+1] + cjs[i, j] * wt[obs[i]]
+                Tmat[J+1, 1] <- Tmat[1, J+1]
+
+                # Update for covariances w/ observed covariates for this id
+                # (for Ks observed for this id)
+                for(k in seq_along( v_obs )){
+                  # k <- 1
+                  K <- which(v_all == v_obs[k])
+                  Tmat[K+1, J+1] <- Tmat[K+1, J+1] + cjs[i, j] * x[obs[i], K] * wt[obs[i]]
+                  Tmat[J+1, K+1] <- Tmat[K+1, J+1]
+                }
+
+                # Update for covariances w/ unobserved covariates for this id
+                # (both j and k missing, includes covariances with itself k = j)
+                for(k in seq_along( v_mis )){
+                  # k <- 1
+                  K <- which(v_all == v_mis[k])
+                  if(K >= J){
+                    Tmat[K+1, J+1] <- Tmat[K+1, J+1] + theta[K+1, J+1] + cjs[i, j] * cjs[i, k] * wt[obs[i]]
+                    Tmat[J+1, K+1] <- Tmat[K+1, J+1]
+                  }
+                }
+              }
+            }
+
+            # Revert theta for next miss pat in this iteration
+            theta <- ISR3::RSWP(theta, v_obs)
           }
+
+          # M-step
+          C_k_aug[[sc]] <- ISR3::SWP(Tmat / N_k[[sc]], 1)
+
+          # Store the weighted intercepts
+          nu_k_EM[[sc]]  <- C_k_aug[[sc]][-1, 1]
+
+          # Store the weighted covmat
+          C_k_EM[[sc]]  <- C_k_aug[[sc]][-1, -1]
+        }
+      }
+
+    # Check differences
+      sc <- 1
+    md_patt
+
+    # Centers
+      # No missings update
+      cbind(old = AllParameters[[2]][[sc]],
+            new = nu_k_cur[[sc]],
+            diff = AllParameters[[2]][[sc]] - nu_k_cur[[sc]])
+
+      # EM update
+      cbind(full = nu_k_cur[[sc]],
+            EM = nu_k_EM[[sc]],
+            diff = nu_k_cur[[sc]] - nu_k_EM[[sc]])
+
+      # Complete cases update
+      cbind(full = nu_k_cur[[sc]],
+            cc = nu_k_cc[[sc]],
+            diff = nu_k_cur[[sc]] - nu_k_cc[[sc]])
+
+    # Vcov
+      vectomat <- function (comat){
+        c(diag(comat), comat[lower.tri(comat)])
+      }
+
+      # No missings update
+      cbind(old = vectomat(AllParameters[[7]][[sc]]),
+            new = vectomat(C_k_cur[[sc]]),
+            diff = vectomat(AllParameters[[7]][[sc]]) - vectomat(C_k_cur[[sc]]))
+
+      # EM update
+      cbind(full = vectomat(C_k_cur[[sc]]),
+            EM = vectomat(C_k_EM[[sc]]),
+            diff = round(vectomat(C_k_cur[[sc]]) - vectomat(C_k_EM[[sc]]),
+                         3))
+
+      # Complete cases update
+      cbind(full = vectomat(C_k_cur[[sc]]),
+            EM = vectomat(C_k_cc[[sc]]),
+            diff = round(vectomat(C_k_cur[[sc]]) - vectomat(C_k_cc[[sc]]),
+                         3))
+
+      # Address missing data ---------------------------------------------------------
+
+      # Create a fake x object with some missing values
+      head(x)
+      x_miss <- x_origin <- x
+      x_miss[1:5, 1] <- NA
+      x_miss[3:8, 2] <- NA
+      head(x_miss)
+
+      # Then replace the x you are using in the main algorithm with the one with
+      # missings
+      x <- x_miss
+
+      # Prepare the objects we need
+      SOMI <- createSOMI(x)
+
+      # Compute the Tobs for each state
+      Tobs_k <- lapply(z_ik, computeTobs, x = x, S = SOMI$S, I = SOMI$I)
+      # Tobs depends on the weighting.
+
+      # extract current value of C_k and nu_k
+      # For now using complete cases just to go on in the coding
+      # ideally this should be something like
+      # C_k[[sc]][i-1]
+      # nu_k[[sc]][i-1]
+      theta <- cov(na.omit(x))
+      mu <- colMeans(na.omit(x))
+
+      # Compute and store the new C_k
+      C_k <- rep(list(NA), n_state)
+      for(sc in 1:n_state){
+
+        # For this state
+        nk <- N_k[[sc]]
+
+        # Use the baseline Tobs weighted based on the state and the iteration we are at
+        Tmat <- Tobs_k[[sc]]
+
+        # Use the last updated means an covariance matrix (for sweep)
+        augCov <- augmentCov(theta, mu)
+
+        # Update the state specific Tobs
+        out_updateTmat <- vector("list", (SOMI$S))
+        for(s in 2:SOMI$S){
+          # Update Tmat for every missing data patter, except the first one
+          out_updateTmat[[s]] <- updateTmat(x = x,
+                                            Tmat = Tmat,
+                                            augCov = augCov,
+                                            obs = SOMI$I[[s]],
+                                            dvs = SOMI$M[[s]],
+                                            ivs = SOMI$O[[s]],
+                                            wt = z_ik[[sc]])
         }
 
-        # M-step
-        theta <- ISR3::SWP((n_sub^(-1) * Tbase), 1)
+        # Convert to a covariance matrix
+        C_k[[sc]]   <- out_updateTmat[-1, -1] / nk
+        nu_k[[sc]]  <- out_updateTmat[-1, 1] / nk
 
-        # Store current values
-        nu_k[[sc]] <- theta[-1, 1]  # center
-        C_k[[sc]]  <- theta[-1, -1] # covariance matrix
-        # }
       }
-      
+
       m_step <- 0
       SumParameterChange <- 100
       while(sum(m_step<n_m_step,SumParameterChange>m_step_tolerance)==2){
