@@ -27,9 +27,9 @@ createSOMI <- function (x){
 
   # Define Missing data patterns for x
   patts <- mice::md.pattern(x, plot = FALSE)
-  R <- patts[-nrow(patts), - ncol(patts), drop = FALSE]
-  R <- R[, colnames(x), drop = FALSE]
-  R_logi <- R == 1 # R stored as True and False values
+  R     <- patts[-nrow(patts), - ncol(patts), drop = FALSE]
+  R     <- R[, colnames(x), drop = FALSE]
+  Rl    <- R == 1
 
   # Number of missing data patterns
   S <- nrow(R)
@@ -48,7 +48,7 @@ createSOMI <- function (x){
     index <- NULL
     for (i in 1:n) {
       # i <- 1
-      if(all.equal(ry[i, ], R_logi[s, ]) == TRUE) {
+      if(all.equal(ry[i, ], Rl[s, ]) == TRUE) {
         index <- c(index, i)
       }
     }
