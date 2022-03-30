@@ -2,7 +2,7 @@
 # Title:    Working Script LMFA with Sweep
 # Author:   Leonie & Edo
 # Created:  2022-02-28
-# Modified: 2022-03-29
+# Modified: 2022-03-30
 
 # Set up -----------------------------------------------------------------------
 
@@ -876,9 +876,8 @@ n_mclust         = 5 # use 2 and not 5
       # Create a fake x object with some missing values
       x_origin <- x
       head(x)
-      x_miss <- x
       set.seed(1234)
-      x_miss <- mice::ampute(x,
+      x_miss <- mice::ampute(x_origin,
                              prop = .1,
                              patterns = matrix(c(1, 1, 0, rep(1, ncol(x)-3),
                                                  1, 0, 1, rep(1, ncol(x)-3),
@@ -929,7 +928,7 @@ n_mclust         = 5 # use 2 and not 5
           dat_aug <- as.matrix(sqrt(wt_s) * cbind(1, x_s))
 
           # Obtain matrix of sufficient statistics (Tobs) w/ cross-product shortcut
-          Tobs_s[[s]] <- as.matrix(t(dat_aug) %*% dat_aug)
+          Tobs_s[[s]] <- t(dat_aug) %*% dat_aug
 
           # Replace NAs with 0 contributions
           Tobs_s[[s]][is.na(Tobs_s[[s]])] <- 0
@@ -945,13 +944,24 @@ n_mclust         = 5 # use 2 and not 5
                    center = AllParameters[[2]][[i]]) # intercepts
       })
 
+      # # Augment current C_ks (set to initial values)
+      # bad_cov <- diag(ncol(AllParameters[[7]][[i]]))
+      # dimnames(bad_cov) <- dimnames(AllParameters[[7]][[i]])
+      # bad_means <- AllParameters[[2]][[i]]
+      # bad_means[1:length(bad_means)] <- 50
+      #
+      # C_k_aug <- lapply(1:n_state, function (i){
+      #   augmentCov(covmat = bad_cov, # covariance
+      #              center = bad_means) # intercepts
+      # })
+
       # Iterations for missing data (to check how this is working)
       # in the future we only want 1 iteration here.
       for(sc in 1:n_state){
         # Define weights for this state
         wt <- z_ik[[sc]]
 
-        for (it in 1:1e3){
+        for (it in 1:1e2){
           print(it)
           # Current estimate of theta
           theta <- C_k_aug[[sc]]
@@ -1004,7 +1014,7 @@ n_mclust         = 5 # use 2 and not 5
                   # k <- 1
                   K <- which(v_all == v_mis[k])
                   if(K >= J){
-                    Tmat[K+1, J+1] <- Tmat[K+1, J+1] + theta[K+1, J+1] + cjs[i, j] * cjs[i, k] * wt[obs[i]]
+                    Tmat[K+1, J+1] <- Tmat[K+1, J+1] + (theta[K+1, J+1] + cjs[i, j] * cjs[i, k]) * wt[obs[i]]
                     Tmat[J+1, K+1] <- Tmat[K+1, J+1]
                   }
                 }
@@ -1027,13 +1037,13 @@ n_mclust         = 5 # use 2 and not 5
       }
 
     # Check differences
-      sc <- 1
+    sc <- 3
     md_patt
 
     # Centers
       # No missings update
-      cbind(old = AllParameters[[2]][[sc]],
-            new = nu_k_cur[[sc]],
+      cbind(previous = AllParameters[[2]][[sc]],
+            update = nu_k_cur[[sc]],
             diff = AllParameters[[2]][[sc]] - nu_k_cur[[sc]])
 
       # EM update
@@ -1048,85 +1058,28 @@ n_mclust         = 5 # use 2 and not 5
 
     # Vcov
       vectomat <- function (comat){
-        c(diag(comat), comat[lower.tri(comat)])
+        names_vec <- unlist(lapply(rownames(comat), function (i){
+          paste0(i, "-", rownames(comat))
+        }))
+        comat_vec <- as.vector(comat)
+        names(comat_vec) <- names_vec
+        # Only unique
+        return(comat_vec[!duplicated(comat_vec)])
       }
 
       # No missings update
-      cbind(old = vectomat(AllParameters[[7]][[sc]]),
-            new = vectomat(C_k_cur[[sc]]),
+      cbind(previous = vectomat(AllParameters[[7]][[sc]]),
+            update = vectomat(C_k_cur[[sc]]),
             diff = vectomat(AllParameters[[7]][[sc]]) - vectomat(C_k_cur[[sc]]))
 
       # EM update
+      sc <- 3
       cbind(full = vectomat(C_k_cur[[sc]]),
             EM = vectomat(C_k_EM[[sc]]),
-            diff = round(vectomat(C_k_cur[[sc]]) - vectomat(C_k_EM[[sc]]),
-                         3))
-
-      # Complete cases update
-      cbind(full = vectomat(C_k_cur[[sc]]),
-            EM = vectomat(C_k_cc[[sc]]),
-            diff = round(vectomat(C_k_cur[[sc]]) - vectomat(C_k_cc[[sc]]),
-                         3))
-
-      # Address missing data ---------------------------------------------------------
-
-      # Create a fake x object with some missing values
-      head(x)
-      x_miss <- x_origin <- x
-      x_miss[1:5, 1] <- NA
-      x_miss[3:8, 2] <- NA
-      head(x_miss)
-
-      # Then replace the x you are using in the main algorithm with the one with
-      # missings
-      x <- x_miss
-
-      # Prepare the objects we need
-      SOMI <- createSOMI(x)
-
-      # Compute the Tobs for each state
-      Tobs_k <- lapply(z_ik, computeTobs, x = x, S = SOMI$S, I = SOMI$I)
-      # Tobs depends on the weighting.
-
-      # extract current value of C_k and nu_k
-      # For now using complete cases just to go on in the coding
-      # ideally this should be something like
-      # C_k[[sc]][i-1]
-      # nu_k[[sc]][i-1]
-      theta <- cov(na.omit(x))
-      mu <- colMeans(na.omit(x))
-
-      # Compute and store the new C_k
-      C_k <- rep(list(NA), n_state)
-      for(sc in 1:n_state){
-
-        # For this state
-        nk <- N_k[[sc]]
-
-        # Use the baseline Tobs weighted based on the state and the iteration we are at
-        Tmat <- Tobs_k[[sc]]
-
-        # Use the last updated means an covariance matrix (for sweep)
-        augCov <- augmentCov(theta, mu)
-
-        # Update the state specific Tobs
-        out_updateTmat <- vector("list", (SOMI$S))
-        for(s in 2:SOMI$S){
-          # Update Tmat for every missing data patter, except the first one
-          out_updateTmat[[s]] <- updateTmat(x = x,
-                                            Tmat = Tmat,
-                                            augCov = augCov,
-                                            obs = SOMI$I[[s]],
-                                            dvs = SOMI$M[[s]],
-                                            ivs = SOMI$O[[s]],
-                                            wt = z_ik[[sc]])
-        }
-
-        # Convert to a covariance matrix
-        C_k[[sc]]   <- out_updateTmat[-1, -1] / nk
-        nu_k[[sc]]  <- out_updateTmat[-1, 1] / nk
-
-      }
+            cc = vectomat(C_k_cc[[sc]]),
+            diff_EM = round(vectomat(C_k_cur[[sc]]) - vectomat(C_k_EM[[sc]]), 3),
+            diff_cc = round(vectomat(C_k_cur[[sc]]) - vectomat(C_k_cc[[sc]]), 3)
+      )
 
       m_step <- 0
       SumParameterChange <- 100
