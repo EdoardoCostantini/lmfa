@@ -887,7 +887,7 @@ n_mclust         = 5 # use 2 and not 5
                              mech = "MAR",
                              type = "RIGHT"
       )
-      md_patt <- mice::md.pattern(x_miss$amp)
+      md_patt <- mice::md.pattern(x_miss$amp, plot = FALSE)
 
       # Then replace the x you are using in the main algorithm with the one with
       # missings
@@ -914,28 +914,11 @@ n_mclust         = 5 # use 2 and not 5
       # Create state specific Tobs
       Tobs_k  <- rep(list(NA),n_state)
       for (sc in 1:n_state){
-        # Weights for this state
-        wt <- z_ik[[sc]]
-
-        # Compute Tobs for all miss patts
-        Tobs_s <- vector("list", SOMI$S)
-        for(s in 1:SOMI$S){
-          # Define what you are working with in this miss patt
-          x_s <- x[SOMI$I[[s]], ]
-          wt_s <- wt[SOMI$I[[s]]]
-
-          # Weigthed augmented design matrix
-          dat_aug <- as.matrix(sqrt(wt_s) * cbind(1, x_s))
-
-          # Obtain matrix of sufficient statistics (Tobs) w/ cross-product shortcut
-          Tobs_s[[s]] <- t(dat_aug) %*% dat_aug
-
-          # Replace NAs with 0 contributions
-          Tobs_s[[s]][is.na(Tobs_s[[s]])] <- 0
-        }
-        Tobs <- Reduce("+", Tobs_s)
-        dimnames(Tobs) <- dimnames(C_k_aug[[1]])
-        Tobs_k[[sc]] <- Tobs
+        Tobs_k[[sc]] <- computeTobs(x = x,
+                                    wt = z_ik[[sc]],
+                                    S = SOMI$S,
+                                    I = SOMI$I
+        )
       }
 
       # Augment current C_ks (set to initial values
@@ -1073,7 +1056,7 @@ n_mclust         = 5 # use 2 and not 5
             diff = vectomat(AllParameters[[7]][[sc]]) - vectomat(C_k_cur[[sc]]))
 
       # EM update
-      sc <- 3
+      sc <- 1
       cbind(full = vectomat(C_k_cur[[sc]]),
             EM = vectomat(C_k_EM[[sc]]),
             cc = vectomat(C_k_cc[[sc]]),
