@@ -938,74 +938,25 @@ n_mclust         = 5 # use 2 and not 5
       #              center = bad_means) # intercepts
       # })
 
+      for(sc in 1:n_state){
       # Iterations for missing data (to check how this is working)
       # in the future we only want 1 iteration here.
-      for(sc in 1:n_state){
-        # Define weights for this state
-        wt <- z_ik[[sc]]
-
         for (it in 1:1e2){
+          # Status
           print(it)
-          # Current estimate of theta
-          theta <- C_k_aug[[sc]]
 
           # Set Tmat to Tobs_k for the given state
           Tmat <- Tobs_k[[sc]]
 
           # E-step (add expected contributions)
           for(s in 2:SOMI$S){
-
-            # Extract preliminary objects
-            obs   <- SOMI$I[[s]]
-            wt_s  <- wt[SOMI$I[[s]]]
-            v_obs <- SOMI$O[[s]]
-            v_mis <- SOMI$M[[s]]
-            v_all <- colnames(x)
-
-            # Sweep theta over predictors for this missing data pattern
-            theta <- ISR3::SWP(theta, v_obs)
-
-            # Define expectations (individual contributions)
-            betas <- theta[c("int", v_obs), v_mis]
-
-            # Define expectations (weight for x? or just for cjs?)
-            cjs <- cbind(1, x[obs, v_obs, drop = FALSE]) %*% betas
-            # cjs <- (cbind(1, x[obs, v_obs, drop = FALSE]) %*% betas) * wt[obs[i]]
-
-            # Update Tmat matrix
-            for(i in seq_along(obs)){
-              # i <- 1
-              for(j in seq_along( v_mis ) ){
-                # j <- 1
-                # Update for mean
-                J <- which(v_all == v_mis[j])
-                Tmat[1, J+1] <- Tmat[1, J+1] + cjs[i, j] * wt[obs[i]]
-                Tmat[J+1, 1] <- Tmat[1, J+1]
-
-                # Update for covariances w/ observed covariates for this id
-                # (for Ks observed for this id)
-                for(k in seq_along( v_obs )){
-                  # k <- 1
-                  K <- which(v_all == v_obs[k])
-                  Tmat[K+1, J+1] <- Tmat[K+1, J+1] + cjs[i, j] * x[obs[i], K] * wt[obs[i]]
-                  Tmat[J+1, K+1] <- Tmat[K+1, J+1]
-                }
-
-                # Update for covariances w/ unobserved covariates for this id
-                # (both j and k missing, includes covariances with itself k = j)
-                for(k in seq_along( v_mis )){
-                  # k <- 1
-                  K <- which(v_all == v_mis[k])
-                  if(K >= J){
-                    Tmat[K+1, J+1] <- Tmat[K+1, J+1] + (theta[K+1, J+1] + cjs[i, j] * cjs[i, k]) * wt[obs[i]]
-                    Tmat[J+1, K+1] <- Tmat[K+1, J+1]
-                  }
-                }
-              }
-            }
-
-            # Revert theta for next miss pat in this iteration
-            theta <- ISR3::RSWP(theta, v_obs)
+            Tmat <- updateTmat(x     = x,
+                               wt    = z_ik[[sc]],
+                               Tmat  = Tmat,
+                               theta = C_k_aug[[sc]],
+                               obs   = SOMI$I[[s]],
+                               v_mis = SOMI$M[[s]],
+                               v_obs = SOMI$O[[s]])
           }
 
           # M-step
@@ -1056,7 +1007,7 @@ n_mclust         = 5 # use 2 and not 5
             diff = vectomat(AllParameters[[7]][[sc]]) - vectomat(C_k_cur[[sc]]))
 
       # EM update
-      sc <- 1
+      sc <- 3
       cbind(full = vectomat(C_k_cur[[sc]]),
             EM = vectomat(C_k_EM[[sc]]),
             cc = vectomat(C_k_cc[[sc]]),
