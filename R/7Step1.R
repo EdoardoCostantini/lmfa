@@ -591,27 +591,40 @@ if(modelselection == TRUE){
 
      C_k <- rep(list(NA),n_state)
      for(sc in 1:n_state){
-       # Define weights for this state
-       wt <- z_ik[[sc]]
 
-       # Normalise weights
-       wn <- wt / sum(wt)
+       # Set current value of C_k_aug
+       C_k_aug <- augmentCov(covmat = AllParameters[[7]][[i]], # covariance
+                             center = AllParameters[[2]][[i]]) # intercepts
 
-       # Compute the weighted means of X again
-       nu_k[[sc]] <- colSums(wn * x)
-       x_cent <- base::sweep(x, 2, nu_k[[sc]], check.margin = FALSE)
+       # EM for missing data iterations
+       for (it in 1:1){
 
-       # Transform to matrix
-       x_cent <- as.matrix(x_cent)
+         # Compute Tobs for the given state / reset at every iteration
+         Tmat <- computeTobs(x = x,
+                             wt = z_ik[[sc]],
+                             S = SOMI$S,
+                             I = SOMI$I)
 
-       # "Effective" sample size
-       nk <- sum(wt)
+         # E-step (add expected contributions)
+         for(s in 2:SOMI$S){
+           Tmat <- updateTmat(x     = x,
+                              wt    = z_ik[[sc]],
+                              Tmat  = Tmat,
+                              theta = C_k_aug,
+                              obs   = SOMI$I[[s]],
+                              v_mis = SOMI$M[[s]],
+                              v_obs = SOMI$O[[s]])
+         }
 
-       # Obtain matrix of sufficient statistics (Tobs) w/ cross-product shortcut
-       Tobs <- t(wt * x_cent) %*% x_cent
+         # M-step
+         C_k_aug <- ISR3::SWP(Tmat / N_k[[sc]], 1)
+       }
 
-       # Convert to a covariance matrix
-       C_k[[sc]] <- Tobs / nk
+       # Store the weighted intercepts
+       nu_k[[sc]]  <- C_k_aug[-1, 1]
+
+       # Store the weighted covmat
+       C_k[[sc]]  <- C_k_aug[-1, -1]
      }
 
      m_step <- 0
