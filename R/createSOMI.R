@@ -1,10 +1,26 @@
 # Project:   lmfa
-# Objective: function to create internal objects for the EM missing data treat
+# Objective: function to create the SOMI object for missing data treatment
 # Author:    Edoardo Costantini
 # Created:   2022-03-01
-# Modified:  2022-03-01
+# Modified:  2022-03-30
+# Note       This function creates a SOMI list:
+#            - S: number of missing data patterns
+#            - O: list of names of variables observed in each missing data pat
+#            - M: list of names of variables missing in each missing data pat
+#            - I: list of observation IDs belonging to each missing data pat
 
 createSOMI <- function (x){
+
+  # Internals -------------------------------------------------------------
+
+  # x = matrix(c(0, 1, NA,
+  #              1, 2, NA,
+  #              NA, 2, 3,
+  #              5, NA, NA),
+  #            ncol = 3,
+  #            byrow = TRUE) # any dataset with missing values
+
+  # Body ------------------------------------------------------------------
 
   # data dimensionality
   n <- nrow(x)
