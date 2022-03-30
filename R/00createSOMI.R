@@ -3,7 +3,7 @@
 # Author:    Edoardo Costantini
 # Created:   2022-03-01
 # Modified:  2022-03-30
-# Note       This function creates a SOMI list:
+# Notes:     This function creates a SOMI list:
 #            - S: number of missing data patterns
 #            - O: list of names of variables observed in each missing data pat
 #            - M: list of names of variables missing in each missing data pat
