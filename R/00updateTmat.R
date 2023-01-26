@@ -2,7 +2,7 @@
 # Objective: function to update sufficient statistics for an EM algorithm
 # Author:    Edoardo Costantini
 # Created:   2022-03-01
-# Modified:  2022-03-30
+# Modified:  2023-01-26
 # Notes:     For a given missing data patters, this function updates the Tmat
 #            with weighted expected contributions from the missing cases.
 
@@ -47,16 +47,14 @@ updateTmat <- function(x, wt = rep(1, ncol(x)),
 
       # Update for mean
       J <- which(v_all == v_mis[j])
-      Tmat[1, J+1] <- Tmat[1, J+1] +
-        cjs[i, j] * wt[obs[i]]
+      Tmat[1, J+1] <- Tmat[1, J+1] + cjs[i, j] * wt[obs[i]]
       Tmat[J+1, 1] <- Tmat[1, J+1]
 
       # Update for covariances w/ observed covariates for this id
       # (for Ks observed for this id)
       for(k in seq_along( v_obs )){
         K <- which(v_all == v_obs[k])
-        Tmat[K+1, J+1] <- Tmat[K+1, J+1] +
-          cjs[i, j] * x[obs[i], K] * wt[obs[i]]
+        Tmat[K+1, J+1] <- Tmat[K+1, J+1] + cjs[i, j] * x[obs[i], K] * wt[obs[i]]
         Tmat[J+1, K+1] <- Tmat[K+1, J+1]
       }
 
@@ -65,9 +63,9 @@ updateTmat <- function(x, wt = rep(1, ncol(x)),
       for(k in seq_along( v_mis )){
         K <- which(v_all == v_mis[k])
         if(K >= J){
-          Tmat[K+1, J+1] <- Tmat[K+1, J+1] +
-            (theta[K+1, J+1] + cjs[i, j] * cjs[i, k]) * wt[obs[i]]
-          Tmat[J+1, K+1] <- Tmat[K+1, J+1]
+          Tmat[K + 1, J + 1] <- Tmat[K + 1, J + 1] + (theta[K + 1, J + 1] +
+            cjs[i, j] * cjs[i, k]) * wt[obs[i]]
+          Tmat[J + 1, K + 1] <- Tmat[K + 1, J + 1]
         }
       }
 
