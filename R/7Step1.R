@@ -593,8 +593,8 @@ if(modelselection == TRUE){
      for(sc in 1:n_state){
 
        # Set current value of C_k_aug
-       C_k_aug <- augmentCov(covmat = AllParameters[[7]][[i]], # covariance
-                             center = AllParameters[[2]][[i]]) # intercepts
+       C_k_aug <- augmentCov(covmat = AllParameters[[7]][[sc]], # covariance
+                             center = AllParameters[[2]][[sc]]) # intercepts
 
        # EM for missing data iterations
        for (it in 1:1){
