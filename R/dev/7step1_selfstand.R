@@ -960,7 +960,7 @@ n_mclust         = 5 # use 2 and not 5
           }
 
           # M-step
-          C_k_aug[[sc]] <- ISR3::SWP(Tmat / N_k[[sc]], 1)
+          C_k_aug[[sc]] <- SWP(Tmat / N_k[[sc]], 1)
 
           # Store the weighted intercepts
           nu_k_EM[[sc]]  <- C_k_aug[[sc]][-1, 1]

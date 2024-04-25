@@ -33,7 +33,7 @@ updateTmat <- function(x, wt = rep(1, ncol(x)),
   v_all <- colnames(x)
 
   # Sweep theta over predictors for this missing data pattern
-  theta <- ISR3::SWP(theta, v_obs)
+  theta <- SWP(theta, v_obs)
 
   # Extract MLR coefficient estimates
   betas <- theta[c("int", v_obs), v_mis]
