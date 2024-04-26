@@ -46,7 +46,7 @@ createSOMI <- function(X) {
   rownames(R) <- paste0("S", 1:nrow(R))
 
   # Order the variables based on the original order
-  R <- R[, colnames(X)]
+  R <- R[, colnames(X), drop = FALSE]
 
   # Create a representation with booleans
   Rl <- R == 1
