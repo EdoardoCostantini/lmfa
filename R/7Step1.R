@@ -596,29 +596,29 @@ if(modelselection == TRUE){
        C_k_aug <- augmentCov(covmat = AllParameters[[7]][[sc]], # covariance
                              center = AllParameters[[2]][[sc]]) # intercepts
 
-       # EM for missing data iterations
-       for (it in 1:1){
+       # Compute Tobs for the given state / reset at every iteration
+       Tmat <- computeTobs(
+         X = x,
+         wt = z_ik[[sc]],
+         S = SOMI$S,
+         I = SOMI$I
+       )
 
-         # Compute Tobs for the given state / reset at every iteration
-         Tmat <- computeTobs(x = x,
-                             wt = z_ik[[sc]],
-                             S = SOMI$S,
-                             I = SOMI$I)
-
-         # E-step (add expected contributions)
-         for(s in 2:SOMI$S){
-           Tmat <- updateTmat(x     = x,
-                              wt    = z_ik[[sc]],
-                              Tmat  = Tmat,
-                              theta = C_k_aug,
-                              obs   = SOMI$I[[s]],
-                              v_mis = SOMI$M[[s]],
-                              v_obs = SOMI$O[[s]])
-         }
-
-         # M-step
-         C_k_aug <- ISR3::SWP(Tmat / N_k[[sc]], 1)
+       # E-step (add expected contributions from every missing data pattern)
+       for (s in 1:SOMI$S) {
+         Tmat <- updateTmat(
+           X = x,
+           wt = z_ik[[sc]],
+           Tmat = Tmat,
+           theta = C_k_aug,
+           obs = SOMI$I[[s]],
+           v_mis = SOMI$M[[s]],
+           v_obs = SOMI$O[[s]]
+         )
        }
+
+       # M-step
+       C_k_aug <- SWP(Tmat / N_k[[sc]], 1)
 
        # Store the weighted intercepts
        nu_k[[sc]]  <- C_k_aug[-1, 1]
