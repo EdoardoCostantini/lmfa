@@ -4,7 +4,7 @@
 \alias{updateTmat}
 \title{Update T matrix}
 \usage{
-updateTmat(X, wt = rep(1, ncol(X)), Tmat, theta, obs, v_mis, v_obs)
+updateTmat(X, wt = rep(1, nrow(X)), Tmat, theta, obs, v_mis, v_obs)
 }
 \arguments{
 \item{X}{A rectangular data set (matrix or data.frame) with named columns.}
@@ -45,12 +45,15 @@ X <- matrix(
 # Create a SOMI object for this matrix
 SOMI <- createSOMI(X)
 
+# Sample some weights
+wt <- runif(nrow(x))
+
 # Compute starting matrices
 Tmat <- computeTobs(X, wt = wt, S = SOMI$S, I = SOMI$I)
 theta <- augmentCov(
   covmat = cov(X, use = "complete.obs"),
   center = colMeans(X, na.rm = TRUE)
-) # current augmented covariance matrix
+)
 
 # Update the Tmat with info in the forth missing data pattern
 updateTmat(

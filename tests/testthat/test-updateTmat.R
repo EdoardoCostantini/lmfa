@@ -26,7 +26,7 @@ SOMI  = createSOMI(x)
 wt    = runif(nrow(x))
 
 # Compute starting matrices
-Tmat  = computeTobs(x = x, wt = wt, S = SOMI$S, I = SOMI$I)
+Tmat  = computeTobs(X = x, wt = wt, S = SOMI$S, I = SOMI$I)
 theta = augmentCov(covmat = cov(x, use = "complete.obs"),
                    center = colMeans(x, na.rm = TRUE)) # current augmented covariance matrix
 

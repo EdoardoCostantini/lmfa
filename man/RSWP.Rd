@@ -20,7 +20,7 @@ The reverse swept matrix \code{V}.  Reverse sweeping will not occur if the
 \code{RSWP} performs the reverse sweep operator.
 }
 \details{
-This program applies the reverse sweep operator as defined in (Dempster 1969). The code was originally written for the ISR3 package which is not avialbale on CRAN anymore.
+This program applies the reverse sweep operator as defined in (Dempster 1969). The code was originally written for the ISR3 package which is not available on CRAN anymore.
 }
 \examples{
 set.seed(100)
