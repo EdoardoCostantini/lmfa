@@ -7,8 +7,8 @@
 #' Object of class \code{somi}, which is a list containing:
 #'  \itemize{
 #'    \item \code{S}: unit integer vector storing the number of missing data patterns
-#'    \item \code{O}: list of names of fully observed variables in each missing data
-#'    \item \code{M}: list of names of variables with missing values in each missing
+#'    \item \code{O}: list of names of fully observed variables in each missing data pattern
+#'    \item \code{M}: list of names of variables with missing values in each missing data pattern
 #'    \item \code{I}: list of membership of data rows in each missing data pattern
 #' }
 #' 
