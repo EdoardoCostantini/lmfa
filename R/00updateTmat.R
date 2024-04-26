@@ -1,4 +1,4 @@
-#' Create a SOMI object
+#' Update T matrix
 #'
 #' Updates the matrix of sufficient statistics for an E step for a given missing data pattern
 #'
