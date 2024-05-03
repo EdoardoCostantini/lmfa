@@ -158,7 +158,9 @@ step1 <- function(data,
   x <- data[,indicators]
   x <- as.data.frame(x)
   if(sum(is.na(x)>0)) stop("data contains missing values on indicator variables that must be removed")
-  
+
+  # Create the somi
+  SOMI <- createSOMI(x)
  
   #*******************************************************************************#
   # NOTE: Usualy, in mixture factor analysis, this would be the number
@@ -507,6 +509,7 @@ if(modelselection == TRUE){
             "of the start sets..."))
   MultistartResults2 <- foreach(multistart2=1:(n_starts),
                      .packages=c("doParallel",
+                                  "lmfa",
                                  "NPflow"),
                      .export=c("updExpMem",
                                "comBetas",
