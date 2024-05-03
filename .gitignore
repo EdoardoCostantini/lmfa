@@ -1,4 +1,27 @@
-.Rproj.user
-.Rhistory
-.RData
+## IDE related
 
+# RStudio
+.Rproj.user/
+*.Rproj
+
+# Pycharm
+.idea/
+
+## Files
+
+# R files (.rds, workspace etc)
+*.Rhistory
+*.RData
+.Rapp.history
+
+# swp files
+*.swp
+
+# Auto-save stuff:
+*~
+~*
+
+# Rcpp
+*.o
+*.so
+*.dll

@@ -591,10 +591,40 @@ if(modelselection == TRUE){
 
      C_k <- rep(list(NA),n_state)
      for(sc in 1:n_state){
-       #this is an existing function to obtain the weighted cov matrix
-       SaveCov <- cov.wt(x,z_ik[[sc]],method = 'ML',center = T )
-       C_k[[sc]] <- SaveCov$cov
-       nu_k[[sc]] <- SaveCov$center #Here we also obtain nu_k
+
+       # Set current value of C_k_aug
+       C_k_aug <- augmentCov(covmat = AllParameters[[7]][[sc]], # covariance
+                             center = AllParameters[[2]][[sc]]) # intercepts
+
+       # Compute Tobs for the given state / reset at every iteration
+       Tmat <- computeTobs(
+         X = x,
+         wt = z_ik[[sc]],
+         S = SOMI$S,
+         I = SOMI$I
+       )
+
+       # E-step (add expected contributions from every missing data pattern)
+       for (s in 1:SOMI$S) {
+         Tmat <- updateTmat(
+           X = x,
+           wt = z_ik[[sc]],
+           Tmat = Tmat,
+           theta = C_k_aug,
+           obs = SOMI$I[[s]],
+           v_mis = SOMI$M[[s]],
+           v_obs = SOMI$O[[s]]
+         )
+       }
+
+       # M-step
+       C_k_aug <- SWP(Tmat / N_k[[sc]], 1)
+
+       # Store the weighted intercepts
+       nu_k[[sc]]  <- C_k_aug[-1, 1]
+
+       # Store the weighted covmat
+       C_k[[sc]]  <- C_k_aug[-1, -1]
      }
 
      m_step <- 0

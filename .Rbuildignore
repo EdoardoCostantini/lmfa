@@ -1,3 +1,8 @@
+# IDE related
+^lmfa\.Rproj$
 ^lmfa\.Rproj$
 ^\.Rproj\.user$
 ^LICENSE\.md$
+
+# Ignore development scripts
+^R/dev$
