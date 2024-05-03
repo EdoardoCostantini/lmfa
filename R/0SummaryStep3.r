@@ -5,7 +5,7 @@
 #'
 #'
 #'
-#' @param object An object storing output from \code{step3}.
+#' @param object An object storing output from \code{step3} (must be of class lmfa_modelselection).
 #' @param rounding The number of decimals to which the results should be rounded (must be a single scalar).
 #' @param ... Further arguments for the default S3 summary method.
 #' @examples
@@ -31,6 +31,8 @@ summary.lmfa_step3 <- function(object, rounding = 4, ...){
   }
   cat("\n")
   cat(paste("LL",round(object$LL,rounding),sep=" = "),"\n")
+  cat(paste("BIC",round(object$BIC,rounding),sep=" = "),"\n")
+  cat(paste("n_par",round(object$n_par,rounding),sep=" = "),"\n")
   cat("\n")
   cat("-------------------------------------------------------------")
   cat("\n")
@@ -65,8 +67,8 @@ summary.lmfa_step3 <- function(object, rounding = 4, ...){
   cat("\n")
   cat(paste("Note: The probabilities are calculated for covariate scores"),"\n")
   cat(paste("equal to the sample means (and a unit time interval). Use"),"\n")
-  cat(paste("the function probabilities() to calculate initial state and"),"\n")
-  cat(paste("transition probabilities for any covariate score (and "),"\n")
+  cat(paste("the function probabilities() to calculate the initial state"),"\n")
+  cat(paste("and transition probabilities for any covariate score (and "),"\n")
   cat(paste("interval) of interest."),"\n")
 
   cat("\n")
