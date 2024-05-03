@@ -55,10 +55,10 @@ createSOMI <- function(X) {
   S <- nrow(R)
 
   # Columns observed for a given pattern
-  O <- apply(R, 1, function(i) {colnames(R)[i == 1]})
+  O <- apply(R, 1, function(i) {colnames(R)[i == 1]}, simplify = FALSE)
 
   # Columns missings for a given pattern
-  M <- apply(R, 1, function(i) {colnames(R)[i == 0]}) #
+  M <- apply(R, 1, function(i) {colnames(R)[i == 0]}, simplify = FALSE)
 
   # Matrix of response indicators
   ry <- !is.na(X)
