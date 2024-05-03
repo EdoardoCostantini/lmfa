@@ -222,7 +222,7 @@ if(modelselection == TRUE){
   # List of multistart procedure results.
   MultistartResults1 <- rep(list(list(NA)),n_starts*10)
   MultistartResults2 <- rep(list(list(NA)),n_starts)
-  MclustResults <- rep(list(list(NA)),3)
+  MclustResults <- rep(list(list(NA)),n_mclust)
 
   # Prepare storing iterations.
   estimation <- matrix(c(NA),ncol=3,nrow=max_iterations)
@@ -357,7 +357,7 @@ if(modelselection == TRUE){
   row.names(loglikMulti) <- 1:n_mclust
 
   # Obtain the number of the best mclust starts and use them for creating random deviations.
-  best_mclust <- order(loglikMulti,decreasing = T)[1]
+  best_mclust <- order(as.matrix(loglikMulti),decreasing = T)[1]
   ini_mclust <- ini_mclust_list[[best_mclust]]
   
   #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
@@ -488,7 +488,7 @@ if(modelselection == TRUE){
   row.names(loglikMulti) <- 1:((n_starts*10)+n_mclust) #plus n_mclust for the mclust starts
 
   # Obtain the number of the best starts.
-  best <- order(loglikMulti,decreasing = T)[1:(n_starts)]
+  best <- order(as.matrix(loglikMulti),decreasing = T)[1:(n_starts)]
   stopCluster(cl)
   stopImplicitCluster()
   #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
@@ -734,7 +734,7 @@ if(modelselection == TRUE){
   row.names(loglikMulti) <- 1:(n_starts)
 
   # Obtain the number of the best starts
-  best <- order(loglikMulti,decreasing = T)[1]
+  best <- order(as.matrix(loglikMulti),decreasing = T)[1]
 
   equalLogli <- round(loglikMulti[,1])
   equalLogli <- unlist(equalLogli)
