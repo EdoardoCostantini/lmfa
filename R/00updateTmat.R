@@ -55,6 +55,11 @@
 updateTmat <- function(X, wt = rep(1, nrow(X)),
                        Tmat, theta,
                        obs, v_mis, v_obs) {
+  # Check input is a matrix
+  if (is.matrix(X) == FALSE) {
+    X <- as.matrix(X)
+  }
+
   # Extract name of all variables involved
   v_all <- colnames(X)
 
