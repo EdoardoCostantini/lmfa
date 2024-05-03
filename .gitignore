@@ -20,3 +20,8 @@
 # Auto-save stuff:
 *~
 ~*
+
+# Rcpp
+*.o
+*.so
+*.dll
