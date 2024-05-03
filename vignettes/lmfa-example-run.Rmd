@@ -1,0 +1,48 @@
+---
+title: "lmfa-example-run"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{lmfa-example-run}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup}
+library(lmfa)
+```
+
+```{r setup}
+
+set.seed(1000)
+modelselection <- step1(
+  data = ESM[sample(1:nrow(ESM), 1e3), ],
+  indicators = c(
+    "Interested",
+    "Joyful",
+    "Nervous",
+    "Listless"
+  ),
+  n_state = 3,
+  n_fact = c(3, 3, 2),
+  modelselection = FALSE,
+  n_state_range = NULL,
+  n_fact_range = NULL,
+  n_starts = 1,
+  n_initial_ite = 2,
+  n_m_step = 5,
+  em_tolerance = 1e-8,
+  m_step_tolerance = 1e-3,
+  max_iterations = 5,
+  n_mclust = 2
+)
+
+summary(modelselection)
+
+```
