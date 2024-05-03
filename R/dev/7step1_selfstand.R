@@ -12,10 +12,11 @@ rm(list = ls())
 # Load package hidden functions
 devtools::load_all()
 
-# Define internal elements we need for development
-
+# Set a seed to replicate progress
 set.seed(1000)
-data             = ESM
+
+# Define internal elements we need for development
+data             = ESM[sample(1:nrow(ESM), 100), ]
 indicators       = c("Interested",
                      "Joyful",
                      # "Determined",
@@ -875,6 +876,7 @@ n_mclust         = 5 # use 2 and not 5
 
       # Create a fake x object with some missing values
       x_origin <- x
+      # x <- x_origin
       head(x)
       set.seed(1234)
       x_miss <- mice::ampute(x_origin,
@@ -949,14 +951,17 @@ n_mclust         = 5 # use 2 and not 5
           Tmat <- Tobs_k[[sc]]
 
           # E-step (add expected contributions)
-          for(s in 2:SOMI$S){
-            Tmat <- updateTmat(x     = x,
-                               wt    = z_ik[[sc]],
-                               Tmat  = Tmat,
-                               theta = C_k_aug[[sc]],
-                               obs   = SOMI$I[[s]],
-                               v_mis = SOMI$M[[s]],
-                               v_obs = SOMI$O[[s]])
+          if(SOMI$S > 1){
+            s <- 2
+            for(s in 1:SOMI$S){
+              Tmat <- updateTmat(x     = x,
+                                wt    = z_ik[[sc]],
+                                Tmat  = Tmat,
+                                theta = C_k_aug[[sc]],
+                                obs   = SOMI$I[[s]],
+                                v_mis = SOMI$M[[s]],
+                                v_obs = SOMI$O[[s]])
+            }
           }
 
           # M-step
