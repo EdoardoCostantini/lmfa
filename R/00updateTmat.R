@@ -29,10 +29,10 @@
 #'
 #' # Create a SOMI object for this matrix
 #' SOMI <- createSOMI(X)
-#' 
+#'
 #' # Sample some weights
 #' wt <- runif(nrow(x))
-#' 
+#'
 #' # Compute starting matrices
 #' Tmat <- computeTobs(X, wt = wt, S = SOMI$S, I = SOMI$I)
 #' theta <- augmentCov(
