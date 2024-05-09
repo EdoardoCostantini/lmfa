@@ -115,7 +115,6 @@ step1 <- function(data,
   if(length(max_iterations)>1) stop("max_iterations must be a single scalar")
   if(!is.numeric(max_iterations)) stop("max_iterations must be a single scalar")
   if(max_iterations<0) stop("max_iterations must be a positive scalar")
-  if(sum(complete.cases(data[,indicators])==FALSE)>0) stop("data must contain complete cases with regard to the indicators only")
   if(max_iterations <= n_initial_ite) stop("max_iterations must be larger than n_initial_ite")
   if(n_initial_ite<0) stop("n_initial_ite must be a positive scalar")
   if(em_tolerance >= m_step_tolerance) stop("em_tolerance must be smaller than m_step_tolerance")
@@ -157,11 +156,16 @@ step1 <- function(data,
   # Obtain the columns with the variables
   x <- data[,indicators]
   x <- as.data.frame(x)
-  if(sum(is.na(x)>0)) stop("data contains missing values on indicator variables that must be removed")
 
   # Create the somi
   SOMI <- createSOMI(x)
+
+  # Create a complete cases version for starting values
+  x_cc <- mice::cc(x)
  
+  # Create a version with random draw replacements
+  x_naive <- apply(x, 2, initialize_NAs)
+
   #*******************************************************************************#
   # NOTE: Usualy, in mixture factor analysis, this would be the number
   # of subjects but here this number represents the independently treated total
@@ -233,7 +237,7 @@ if(modelselection == TRUE){
   # Define minimum amount of residual variances.
   residualVariance <- rep(NA,J)
   for(j in 1:J){
-    residualVariance[j] <- (var(x[,j]) * (n_sub - 1) / n_sub)*1.0e-6
+    residualVariance[j] <- (var(x[,j], na.rm = TRUE) * (n_sub - 1) / n_sub)*1.0e-6
   }
 
 
@@ -261,13 +265,13 @@ if(modelselection == TRUE){
   ini_mclust_list <- list()
 
   for(mcluststarts in 1:n_mclust){
-    ini_mclust <- Mclust(x, G = n_state, verbose=FALSE)
+    ini_mclust <- Mclust(x_naive, G = n_state, verbose = FALSE)
     ini_mclust <- ini_mclust$classification
     ini_mclust_list[[mcluststarts]] <- ini_mclust
 
 
     # Self-created function (see '1InitializeEM.R').
-    InitialValues <- initializeStep1(x,n_sub,n_state,n_fact,
+    InitialValues <- initializeStep1(x_naive,n_sub,n_state,n_fact,
                                     J,startval="mclust",
                                     RandVec=RandVec,
                                     ini_mclust = ini_mclust,
@@ -366,7 +370,7 @@ if(modelselection == TRUE){
   # Initialize n_starts*10 random deviations from best mclust assignments 
   #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 
-  
+  ## What row number to use here? I can only use the cc?
   ini_mclust_random <- matrix(NA,ncol = (n_starts*10), nrow =n_sub )
   for(multistart in 1:(n_starts*10)){
     if(multistart == 1){
