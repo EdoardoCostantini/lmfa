@@ -1,5 +1,5 @@
 # Project:   lmfa
-# Objective: Test whether the observed_LL function is behaving as expected
+# Objective: Test that the DMV function does what expected
 # Author:    Edoardo Costantini
 # Created:   2024-05-09
 # Modified:  2024-05-09
@@ -18,9 +18,9 @@ x <- ESM[sample(1:nrow(ESM), 1e3), c(
 
 # Initialize parameters for step 1
 parms <- initializeStep1(
-    x = x, 
-    n_sub = nrow(x), 
-    n_state = 3, 
+    x = x,
+    n_sub = nrow(x),
+    n_state = 3,
     n_fact = c(3, 3, 3),
     J = ncol(x),
     startval = "mclust",
@@ -39,15 +39,3 @@ saveDMV <- DMV(
     n_sub = nrow(x),
     nu_k = parms$nu_k
 )
-
-# Use function
-LL <- observed_LL(
-    dmv = saveDMV$mat,
-    n = nrow(x),
-    n_state = 3,
-    pi_k = parms$pi_k
-)
-
-# Test the function returns a numeric vector of length 1
-testthat::expect_true(is.numeric(LL))
-testthat::expect_true(length(LL) == 1)

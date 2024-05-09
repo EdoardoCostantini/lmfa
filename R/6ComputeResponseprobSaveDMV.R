@@ -16,20 +16,41 @@
 #' @noRd
 
 DMV <- function(x, Lambda_k, Psi_k, n_state, J, n_sub, nu_k) {
+  # Create an empty list to store covariance matrices for every state
   Sigma_k <- rep(list(NA), n_state)
-  rooti_k <- rep(list(NA), n_state)
+
+  # Loop over the states to update every Sigma
   for (k in 1:n_state) {
     Sigma_k[[k]] <- (tcrossprod(Lambda_k[[k]]) + Psi_k[[k]])
-    # rooti_k[[k]] <- backsolve(chol(Sigma_k[[k]]),diag(J))
   }
+
+  # Create an empty matrix to store the densities
   saveDMV <- matrix(NA, nrow = n_state, ncol = n_sub) # empty matrix
-  for (i in 1:n_sub) { # fill matrix for all observations
-    for (k in 1:n_state) { # and for all states
-      # quads <- colSums((crossprod(rooti_k[[k]],(t(x[i,])-nu_k[[k]])))^2)
-      # saveDMV[k,i] <- exp(-(J/2)*log(2*pi) + sum(log(diag(rooti_k[[k]]))) - .5*quads) #the middle part is the same as -log(det(Sigma_k[[k]]))/2 but it is apparently faster
-      saveDMV[k, i] <- mvnpdfC(as.matrix(unlist(x[i, ])), nu_k[[k]], Sigma_k[[k]], Log = FALSE)
+
+  # Loop over the observations
+  for (i in 1:n_sub) {
+    # Loop over the states
+    for (k in 1:n_state) {
+      saveDMV[k, i] <- NPflow::mvnpdfC(
+        x = as.matrix(unlist(x[i, ])),
+        mean = nu_k[[k]],
+        varcovM = Sigma_k[[k]],
+        Log = FALSE
+      )
     }
   }
 
-  return(saveDMV)
+  # Make DMV a list for convenient storage.
+  DMV_list <- rep(list(NA), n_state)
+  for (k in 1:n_state) {
+    DMV_list[[k]] <- saveDMV[k, ]
+  }
+
+  # Return both the matrix and the list version
+  return(
+    list(
+      mat = saveDMV,
+      lis = DMV_list
+    )
+  )
 }

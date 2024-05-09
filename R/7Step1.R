@@ -316,11 +316,11 @@ step1 <- function(data,
       #******************************************************************************* #
 
       # Self-created function (see '6ComputeResponseprobSaveDMV.R').
-      saveDMV <- DMV(x, Lambda_k, Psi_k, n_state, J, n_sub, nu_k)
+      DMV_out <- DMV(x, Lambda_k, Psi_k, n_state, J, n_sub, nu_k)
 
       # Obtain the observed-data loglikelihood.
       total_logl <- observed_LL(
-        dmv = saveDMV,
+        dmv = DMV_out$mat,
         n = n_sub,
         n_state = n_state,
         pi_k = pi_k
@@ -331,19 +331,13 @@ step1 <- function(data,
       # belong to the best start sets according to the loglikelihood.
       #******************************************************************************* #
 
-      # Make DMV a list for convenient storage.
-      DMV_list <- rep(list(NA), n_state)
-      for (k in 1:n_state) {
-        DMV_list[[k]] <- saveDMV[k, ]
-      }
-
       AllParameters <- list(
         pi_k, # state proportions
         nu_k, # state-specific intercepts
         Lambda_k, # state-specific loading matrices
         lapply(Psi_k, diag), # state-specific unique variances
         total_logl, # loglikelihood value
-        DMV_list, # state-specific resp. probabilities
+        DMV_out$lis, # state-specific resp. probabilities
         C_k
       ) # sample covariance matrix
 
@@ -461,11 +455,11 @@ step1 <- function(data,
         #******************************************************************************* #
 
         # Self-created function (see '6ComputeResponseprobSaveDMV.R').
-        saveDMV <- DMV(x, Lambda_k, Psi_k, n_state, J, n_sub, nu_k)
+        DMV_out <- DMV(x, Lambda_k, Psi_k, n_state, J, n_sub, nu_k)
 
         # Obtain the observed-data loglikelihood.
         total_logl <- observed_LL(
-          dmv = saveDMV,
+          dmv = DMV_out$mat,
           n = n_sub,
           n_state = n_state,
           pi_k = pi_k
@@ -476,19 +470,13 @@ step1 <- function(data,
         # belong to the best start sets according to the loglikelihood.
         #******************************************************************************* #
 
-        # Make DMV a list for convenient storage.
-        DMV_list <- rep(list(NA), n_state)
-        for (k in 1:n_state) {
-          DMV_list[[k]] <- saveDMV[k, ]
-        }
-
         AllParameters <- list(
           pi_k, # state proportions
           nu_k, # state-specific intercepts
           Lambda_k, # state-specific loading matrices
           lapply(Psi_k, diag), # state-specific unique variances
           total_logl, # loglikelihood value
-          DMV_list, # state-specific resp. probabilities
+          DMV_out$lis, # state-specific resp. probabilities
           C_k
         ) # sample covariance matrix
 
@@ -690,28 +678,16 @@ step1 <- function(data,
         # Compute: Observed-data loglikelihood
         #-------------------------------------------------------------------------------#
 
-        #******************************************************************************* #
-        # NOTE: FIRST calculate the DMV (response probabilities) to be able to re-use
-        # them because this takes quite some time.
-        # THEN calculate the likelihood while reusing the response probabilities DMV.
-        #******************************************************************************* #
-
         # Self-created function (see '6ComputeResponseprobSaveDMV.R').
-        saveDMV <- DMV(x, Lambda_k, Psi_k, n_state, J, n_sub, nu_k)
+        DMV_out <- DMV(x, Lambda_k, Psi_k, n_state, J, n_sub, nu_k)
 
         # Obtain the observed-data loglikelihood.
         total_logl <- observed_LL(
-          dmv = saveDMV,
+          dmv = DMV_out$mat,
           n = n_sub,
           n_state = n_state,
           pi_k = pi_k
         )
-
-        # Make DMV a list for convenient storage.
-        DMV_list <- rep(list(NA), n_state)
-        for (k in 1:n_state) {
-          DMV_list[[k]] <- saveDMV[k, ]
-        }
 
         #-------------------------------------------------------------------------------#
         # Compute: Convergence
@@ -725,7 +701,7 @@ step1 <- function(data,
           Lambda_k, # state-specific loading matrices
           lapply(Psi_k, diag), # state-specific unique variances
           total_logl, # loglikelihood value
-          DMV_list, # state-specific resp. probabilities
+          DMV_out$lis, # state-specific resp. probabilities
           C_k, # sample covariance matrix
           list(estimation),
           iteration
@@ -925,21 +901,15 @@ step1 <- function(data,
       #******************************************************************************* #
 
       # Self-created function (see '6ComputeResponseprobSaveDMV.R').
-      saveDMV <- DMV(x, Lambda_k, Psi_k, n_state, J, n_sub, nu_k)
+      DMV_out <- DMV(x, Lambda_k, Psi_k, n_state, J, n_sub, nu_k)
 
       # Obtain the observed-data loglikelihood.
       total_logl <- observed_LL(
-        dmv = saveDMV,
+        dmv = DMV_out$mat,
         n = n_sub,
         n_state = n_state,
         pi_k = pi_k
       )
-
-      # Make DMV a list for convenient storage.
-      DMV_list <- rep(list(NA), n_state)
-      for (k in 1:n_state) {
-        DMV_list[[k]] <- saveDMV[k, ]
-      }
 
       #-------------------------------------------------------------------------------#
       # Compute: Convergence
@@ -954,7 +924,7 @@ step1 <- function(data,
         Lambda_k, # state-specific loading matrices
         lapply(Psi_k, diag), # state-specific unique variances
         total_logl, # loglikelihood value
-        DMV_list, # state-specific resp. probabilities
+        DMV_out$lis, # state-specific resp. probabilities
         C_k
       ) # sample covariance matrix
 
