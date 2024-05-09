@@ -319,13 +319,12 @@ step1 <- function(data,
       saveDMV <- DMV(x, Lambda_k, Psi_k, n_state, J, n_sub, nu_k)
 
       # Obtain the observed-data loglikelihood.
-      logli <- c(rep(0, n_sub))
-      for (i in 1:n_sub) {
-        for (k in 1:n_state) {
-          logli[i] <- logli[i] + pi_k[[k]] * saveDMV[k, i]
-        }
-      }
-      total_logl <- sum(log(logli))
+      total_logl <- observed_LL(
+        dmv = saveDMV,
+        n = n_sub,
+        n_state = n_state,
+        pi_k = pi_k
+      )
 
       #******************************************************************************* #
       # NOTE: Get all relevant parameters in one list to continue with the ones that
@@ -401,6 +400,7 @@ step1 <- function(data,
           "comBetas",
           "comTheta",
           "updLambPsi",
+          "observed_LL",
           "DMV"
         ),
         .verbose = FALSE
@@ -464,13 +464,12 @@ step1 <- function(data,
         saveDMV <- DMV(x, Lambda_k, Psi_k, n_state, J, n_sub, nu_k)
 
         # Obtain the observed-data loglikelihood.
-        logli <- c(rep(0, n_sub))
-        for (i in 1:n_sub) {
-          for (k in 1:n_state) {
-            logli[i] <- logli[i] + pi_k[[k]] * saveDMV[k, i]
-          }
-        }
-        total_logl <- sum(log(logli))
+        total_logl <- observed_LL(
+          dmv = saveDMV,
+          n = n_sub,
+          n_state = n_state,
+          pi_k = pi_k
+        )
 
         #******************************************************************************* #
         # NOTE: Get all relevant parameters in one list to continue with the ones that
@@ -541,6 +540,7 @@ step1 <- function(data,
         "comBetas",
         "comTheta",
         "updLambPsi",
+        "observed_LL",
         "DMV"
       ),
       .verbose = FALSE
@@ -700,13 +700,12 @@ step1 <- function(data,
         saveDMV <- DMV(x, Lambda_k, Psi_k, n_state, J, n_sub, nu_k)
 
         # Obtain the observed-data loglikelihood.
-        logli <- c(rep(0, n_sub))
-        for (i in 1:n_sub) {
-          for (k in 1:n_state) {
-            logli[i] <- logli[i] + pi_k[[k]] * saveDMV[k, i]
-          }
-        }
-        total_logl <- sum(log(logli))
+        total_logl <- observed_LL(
+          dmv = saveDMV,
+          n = n_sub,
+          n_state = n_state,
+          pi_k = pi_k
+        )
 
         # Make DMV a list for convenient storage.
         DMV_list <- rep(list(NA), n_state)
@@ -929,13 +928,12 @@ step1 <- function(data,
       saveDMV <- DMV(x, Lambda_k, Psi_k, n_state, J, n_sub, nu_k)
 
       # Obtain the observed-data loglikelihood.
-      logli <- c(rep(0, n_sub))
-      for (i in 1:n_sub) {
-        for (k in 1:n_state) {
-          logli[i] <- logli[i] + pi_k[[k]] * saveDMV[k, i]
-        }
-      }
-      total_logl <- sum(log(logli))
+      total_logl <- observed_LL(
+        dmv = saveDMV,
+        n = n_sub,
+        n_state = n_state,
+        pi_k = pi_k
+      )
 
       # Make DMV a list for convenient storage.
       DMV_list <- rep(list(NA), n_state)
