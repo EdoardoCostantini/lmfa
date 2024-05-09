@@ -21,8 +21,73 @@ library(lmfa)
 ```{r setup}
 
 set.seed(1000)
+ESM_subset <- ESM[sample(1:nrow(ESM), 1e3), c(
+  "Interested",
+  "Joyful",
+  "Nervous",
+  "Listless"
+)]
+
 modelselection <- step1(
-  data = ESM[sample(1:nrow(ESM), 1e3), ],
+  data = ESM_subset,
+  indicators = c(
+    "Interested",
+    "Joyful",
+    "Nervous",
+    "Listless"
+  ),
+  n_state = 3,
+  n_fact = c(3, 3, 2),
+  modelselection = FALSE,
+  n_state_range = NULL,
+  n_fact_range = NULL,
+  n_starts = 1,
+  n_initial_ite = 2,
+  n_m_step = 5,
+  em_tolerance = 1e-8,
+  m_step_tolerance = 1e-3,
+  max_iterations = 5,
+  n_mclust = 2
+)
+
+summary(modelselection)
+
+```
+
+Data with missing values
+
+```{r setup}
+
+# x <- x_origin
+head(ESM_subset)
+set.seed(1234)
+
+# Mar missingness
+ESM_miss <- mice::ampute(
+  ESM_subset,
+  prop = .1,
+  patterns = matrix(
+    c(
+      1, 1, 0, rep(1, ncol(ESM_subset) - 3),
+      1, 0, 1, rep(1, ncol(ESM_subset) - 3),
+      1, 0, 0, rep(1, ncol(ESM_subset) - 3)
+    ),
+    ncol = ncol(ESM_subset),
+    byrow = TRUE
+  ),
+  mech = "MAR",
+  type = "RIGHT"
+)
+
+# Explore data with missingness
+head(ESM_miss$amp)
+
+# Check it
+md_patt <- mice::md.pattern(ESM_miss$amp, plot = FALSE)
+
+# Use step 1 on data with missingness
+modelselection_miss <- step1(
+  data = ESM_miss$amp,
   indicators = c(
     "Interested",
     "Joyful",
